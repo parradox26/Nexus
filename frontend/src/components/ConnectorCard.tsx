@@ -1,10 +1,8 @@
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactElement } from 'react'
 import { ConnectorSource, ConnectorStatus, SyncResult } from '../types'
 import { api } from '../api/client'
 import { StatusBadge } from './StatusBadge'
 import { ContactsModal } from './ContactsModal'
-
-// ── Status icon SVGs ──────────────────────────────────────────────────────────
 
 function ConnectedIcon() {
   return (
@@ -41,24 +39,31 @@ function DisconnectedIcon() {
   )
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
-
 type IconState = 'connected' | 'mock' | 'error' | 'disconnected'
 
-const ICON_STATE_STYLES: Record<IconState, { bg: string; icon: React.ReactElement }> = {
-  connected:    { bg: '#EAF3DE', icon: <ConnectedIcon /> },
-  mock:         { bg: '#FAEEDA', icon: <MockIcon /> },
-  error:        { bg: '#FCEBEB', icon: <ErrorIcon /> },
+type OAuthPopupMessage = {
+  type: string
+  source: ConnectorSource
+  success: boolean
+  error?: string
+}
+
+const ICON_STATE_STYLES: Record<IconState, { bg: string; icon: ReactElement }> = {
+  connected: { bg: '#EAF3DE', icon: <ConnectedIcon /> },
+  mock: { bg: '#FAEEDA', icon: <MockIcon /> },
+  error: { bg: '#FCEBEB', icon: <ErrorIcon /> },
   disconnected: { bg: '#EEEDFE', icon: <DisconnectedIcon /> },
 }
 
 const MOCK_SOURCES: ConnectorSource[] = ['facebook', 'stripe_mock']
 
 const SOURCE_LABELS: Record<ConnectorSource, string> = {
-  google:       'google · oauth2',
-  facebook:     'facebook · mock',
-  stripe_mock:  'stripe · mock',
+  google: 'google - oauth2',
+  facebook: 'facebook - mock',
+  stripe_mock: 'stripe - mock',
 }
+
+const OAUTH_MESSAGE_TYPE = 'nexus:oauth'
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -70,7 +75,101 @@ function relativeTime(iso: string): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function waitForOAuthResult(popup: Window, source: ConnectorSource, allowedOrigin: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let done = false
+    let checking = false
+
+    const cleanup = () => {
+      window.removeEventListener('message', onMessage)
+      window.removeEventListener('storage', onStorage)
+      window.clearInterval(closedPoll)
+      window.clearInterval(connectionPoll)
+      window.clearTimeout(timeout)
+    }
+
+    const finish = (fn: () => void) => {
+      if (done) return
+      done = true
+      cleanup()
+      fn()
+    }
+
+    const checkConnected = async () => {
+      if (done || checking) return
+      checking = true
+      try {
+        const { connectors } = await api.connectors.list()
+        const target = connectors.find((c) => c.source === source)
+        if (target?.connected) {
+          try {
+            popup.close()
+          } catch (_err) {}
+          finish(resolve)
+        }
+      } catch (_err) {
+        // Ignore transient polling errors while OAuth flow is in progress.
+      } finally {
+        checking = false
+      }
+    }
+
+    const handlePayload = (data: OAuthPopupMessage) => {
+      if (data.success) {
+        finish(resolve)
+        return
+      }
+      finish(() => reject(new Error(data.error ?? 'Authentication failed')))
+    }
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== popup) return
+      const originOk = event.origin === allowedOrigin || event.origin === 'null' || event.origin === ''
+      if (!originOk) return
+      const data = event.data as OAuthPopupMessage | undefined
+      if (!data || data.type !== OAUTH_MESSAGE_TYPE || data.source !== source) return
+      handlePayload(data)
+    }
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== 'nexus:oauth_result' || !event.newValue) return
+      try {
+        const data = JSON.parse(event.newValue) as OAuthPopupMessage
+        if (data.type !== OAUTH_MESSAGE_TYPE || data.source !== source) return
+        handlePayload(data)
+      } catch (_err) {
+        // Ignore malformed storage payloads.
+      }
+    }
+
+    window.addEventListener('message', onMessage)
+    window.addEventListener('storage', onStorage)
+
+    const closedPoll = window.setInterval(() => {
+      if (popup.closed) {
+        void (async () => {
+          await checkConnected()
+          if (!done) {
+            finish(() => reject(new Error('Sign-in window was closed before completion')))
+          }
+        })()
+      }
+    }, 350)
+
+    const connectionPoll = window.setInterval(() => {
+      void checkConnected()
+    }, 1000)
+
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        await checkConnected()
+        if (!done) {
+          finish(() => reject(new Error('Sign-in timed out. Please try again.')))
+        }
+      })()
+    }, 120000)
+  })
+}
 
 interface Props {
   connector: ConnectorStatus
@@ -101,13 +200,20 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
   async function handleConnect() {
     setConnecting(true)
     setError(null)
+
     try {
       const result = await api.connectors.connect(connector.source)
       if (result.authUrl) {
-        window.open(result.authUrl, '_blank', 'width=500,height=600')
-      } else {
-        onRefresh()
+        const popup = window.open(result.authUrl, '_blank', 'width=500,height=600')
+        if (!popup) {
+          throw new Error('Popup was blocked. Please allow popups and try again.')
+        }
+
+        const allowedOrigin = new URL(result.authUrl).origin
+        await waitForOAuthResult(popup, connector.source, allowedOrigin)
       }
+
+      onRefresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed')
     } finally {
@@ -162,10 +268,8 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
           gap: '12px',
         }}
       >
-        {/* Top row */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            {/* Status icon */}
             <div
               style={{
                 width: '44px',
@@ -180,7 +284,6 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
             >
               {icon}
             </div>
-            {/* Name + source */}
             <div>
               <p style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.3 }}>
                 {connector.name}
@@ -208,15 +311,13 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
           />
         </div>
 
-        {/* Meta row */}
         {(connector.lastSync || syncedCount !== null) && (
           <p style={{ fontSize: '12px', color: '#888888', margin: 0 }}>
             {connector.lastSync && `Last sync: ${relativeTime(connector.lastSync)}`}
-            {syncedCount !== null && ` · ${syncedCount} contacts`}
+            {syncedCount !== null && ` - ${syncedCount} contacts`}
           </p>
         )}
 
-        {/* Error */}
         {error && (
           <div
             style={{
@@ -232,7 +333,6 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
           </div>
         )}
 
-        {/* Sync progress bar */}
         {syncResult && successRate !== null && (
           <div style={{ background: '#F5F4FF', borderRadius: '8px', padding: '10px 12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -280,16 +380,15 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
           </div>
         )}
 
-        {/* Action row */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {!connector.connected ? (
             <button onClick={() => void handleConnect()} disabled={connecting} style={btnPrimary(connecting)}>
-              {connecting ? 'Connecting…' : '→ Connect'}
+              {connecting ? 'Connecting...' : 'Connect'}
             </button>
           ) : (
             <>
               <button onClick={() => void handleSync()} disabled={syncing} style={btnPrimary(syncing)}>
-                {syncing ? 'Syncing…' : '↑ Sync now'}
+                {syncing ? 'Syncing...' : 'Sync now'}
               </button>
               <button onClick={() => setShowContacts(true)} style={btnSecondary}>
                 View contacts
@@ -309,9 +408,7 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
   )
 }
 
-// ── Button style helpers ──────────────────────────────────────────────────────
-
-function btnPrimary(disabled: boolean): React.CSSProperties {
+function btnPrimary(disabled: boolean): CSSProperties {
   return {
     background: disabled ? '#9496F3' : '#6366F1',
     color: '#fff',
@@ -325,7 +422,7 @@ function btnPrimary(disabled: boolean): React.CSSProperties {
   }
 }
 
-const btnSecondary: React.CSSProperties = {
+const btnSecondary: CSSProperties = {
   background: '#fff',
   color: '#534AB7',
   border: '0.5px solid #E0DEF7',
@@ -336,7 +433,7 @@ const btnSecondary: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-function btnDanger(disabled: boolean): React.CSSProperties {
+function btnDanger(disabled: boolean): CSSProperties {
   return {
     background: '#fff',
     color: disabled ? '#C08080' : '#A32D2D',
