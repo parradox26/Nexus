@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ConnectorToken {
+  id           String    @id @default(cuid())
+  source       String    @unique
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  iv           String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model SyncLog {
+  id          String   @id @default(cuid())
+  source      String
+  status      String
+  attempted   Int
+  succeeded   Int
+  failed      Int
+  errors      Json?
+  durationMs  Int
+  triggeredBy String
+  createdAt   DateTime @default(now())
+}

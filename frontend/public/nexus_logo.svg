@@ -1,0 +1,32 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Nexus logo</title>
+  <desc>Hexagonal logo with interconnected nodes representing unified integrations</desc>
+
+  <!-- Outer hexagon -->
+  <polygon points="100,10 180,55 180,145 100,190 20,145 20,55"
+    fill="none" stroke="#6366F1" stroke-width="3"/>
+
+  <!-- Inner hexagon -->
+  <polygon points="100,30 160,65 160,135 100,170 40,135 40,65"
+    fill="none" stroke="#6366F1" stroke-width="1" opacity="0.3"/>
+
+  <!-- Center node -->
+  <circle cx="100" cy="100" r="18" fill="#6366F1"/>
+  <circle cx="100" cy="100" r="10" fill="white" opacity="0.25"/>
+
+  <!-- Satellite nodes -->
+  <circle cx="100" cy="35" r="9" fill="none" stroke="#6366F1" stroke-width="2.5"/>
+  <circle cx="157" cy="67" r="9" fill="none" stroke="#6366F1" stroke-width="2.5"/>
+  <circle cx="157" cy="133" r="9" fill="none" stroke="#6366F1" stroke-width="2.5"/>
+  <circle cx="100" cy="165" r="9" fill="none" stroke="#6366F1" stroke-width="2.5"/>
+  <circle cx="43" cy="133" r="9" fill="none" stroke="#6366F1" stroke-width="2.5"/>
+  <circle cx="43" cy="67" r="9" fill="none" stroke="#6366F1" stroke-width="2.5"/>
+
+  <!-- Connector lines -->
+  <line x1="100" y1="82" x2="100" y2="44" stroke="#6366F1" stroke-width="1.5" opacity="0.6"/>
+  <line x1="116" y1="91" x2="149" y2="73" stroke="#6366F1" stroke-width="1.5" opacity="0.6"/>
+  <line x1="116" y1="109" x2="149" y2="127" stroke="#6366F1" stroke-width="1.5" opacity="0.6"/>
+  <line x1="100" y1="118" x2="100" y2="156" stroke="#6366F1" stroke-width="1.5" opacity="0.6"/>
+  <line x1="84" y1="109" x2="51" y2="127" stroke="#6366F1" stroke-width="1.5" opacity="0.6"/>
+  <line x1="84" y1="91" x2="51" y2="73" stroke="#6366F1" stroke-width="1.5" opacity="0.6"/>
+</svg>
