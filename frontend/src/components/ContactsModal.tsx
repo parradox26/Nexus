@@ -20,97 +20,236 @@ export function ContactsModal({ source, onClose }: Props) {
       .finally(() => setLoading(false))
   }, [source])
 
+  function getDisplayName(contact: UnifiedContact): string {
+    const first = contact.firstName.trim()
+    const last = contact.lastName.trim()
+    const fullName = `${first} ${last}`.trim()
+    if (fullName) return fullName
+    const fallback = contact.email.split('@')[0]
+    return fallback || 'Unnamed contact'
+  }
+
+  function getAvatarLabel(contact: UnifiedContact): string {
+    const first = contact.firstName.trim()
+    const last = contact.lastName.trim()
+    if (first && last) return `${first[0]}${last[0]}`.toUpperCase()
+    if (first) return first[0].toUpperCase()
+    if (contact.email) return contact.email[0].toUpperCase()
+    return '?'
+  }
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(26,26,46,0.4)' }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        background: 'rgba(26, 26, 46, 0.48)',
+      }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[12px] bg-white shadow-xl"
-        style={{ border: '0.5px solid #E0DEF7', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+        style={{
+          width: '100%',
+          maxWidth: '720px',
+          maxHeight: '82vh',
+          borderRadius: '12px',
+          border: '0.5px solid #E0DEF7',
+          background: '#FFFFFF',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: '0 20px 50px rgba(29, 36, 78, 0.2)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: '0.5px solid #E0DEF7' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: '14px 16px',
+            borderBottom: '0.5px solid #E0DEF7',
+            background: 'linear-gradient(180deg, #F9F8FF 0%, #FFFFFF 100%)',
+          }}
         >
-          <div>
-            <p className="font-semibold capitalize" style={{ fontSize: '14px', color: '#1a1a2e' }}>
-              {source} contacts
-            </p>
-            {!loading && (
-              <p style={{ fontSize: '12px', color: '#888888', marginTop: '1px' }}>
-                {contacts.length} records
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '9px',
+                border: '0.5px solid #CECBF6',
+                background: '#EEEDFE',
+                color: '#534AB7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '13px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                flexShrink: 0,
+              }}
+            >
+              {source[0]}
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1A1A2E', textTransform: 'capitalize' }}>
+                {source} contacts
               </p>
-            )}
+              {!loading && (
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6F7190' }}>
+                  {contacts.length} records
+                </p>
+              )}
+            </div>
           </div>
+
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-[6px] transition-colors hover:bg-[#F5F4FF]"
-            style={{ color: '#888888', fontSize: '16px' }}
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '8px',
+              border: '0.5px solid #E0DEF7',
+              background: '#FFFFFF',
+              color: '#7E7FA4',
+              fontSize: '18px',
+              lineHeight: 1,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
           >
-            ✕
+            x
           </button>
         </div>
 
-        {/* Body */}
-        <div className="overflow-y-auto flex-1">
+        <div style={{ overflowY: 'auto', flex: 1, padding: '14px' }}>
           {loading && (
-            <div className="flex items-center justify-center py-12">
-              <svg className="h-5 w-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '54px 0' }}>
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px', color: '#6366F1' }}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
+                <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 12 12"
+                    to="360 12 12"
+                    dur="0.9s"
+                    repeatCount="indefinite"
+                  />
+                </path>
               </svg>
             </div>
           )}
 
           {error && (
-            <p className="px-5 py-4 text-sm" style={{ color: '#A32D2D' }}>{error}</p>
+            <p style={{ margin: 0, padding: '8px', fontSize: '13px', color: '#A32D2D' }}>
+              {error}
+            </p>
           )}
 
           {!loading && !error && contacts.length === 0 && (
-            <div className="px-5 py-10 text-center">
-              <p style={{ fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>No contacts yet</p>
+            <div style={{ padding: '42px 8px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>No contacts yet</p>
               <p style={{ fontSize: '12px', color: '#888888', marginTop: '4px' }}>
                 Sync this connector to pull in contacts
               </p>
             </div>
           )}
 
-          {contacts.map((c, i) => (
+          {!loading && !error && contacts.map((contact) => (
             <div
-              key={c.id}
-              className="flex items-center gap-3 px-5 py-3"
+              key={contact.id}
               style={{
-                borderBottom: i < contacts.length - 1 ? '0.5px solid #F1EFE8' : 'none',
+                border: '0.5px solid #E0DEF7',
+                borderRadius: '10px',
+                padding: '11px 12px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                background: '#FFFFFF',
+                boxShadow: '0 1px 0 rgba(77, 82, 136, 0.05)',
+                marginBottom: '8px',
               }}
             >
               <div
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                style={{ background: '#EEEDFE', color: '#534AB7' }}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  border: '0.5px solid #CECBF6',
+                  background: '#EEEDFE',
+                  color: '#534AB7',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
               >
-                {(c.firstName[0] ?? c.email[0] ?? '?').toUpperCase()}
+                {getAvatarLabel(contact)}
               </div>
-              <div className="flex-1 min-w-0">
+
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <p
-                  className="truncate"
-                  style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}
+                  style={{
+                    margin: 0,
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#1A1A2E',
+                    lineHeight: 1.3,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
                 >
-                  {c.firstName} {c.lastName}
+                  {getDisplayName(contact)}
                 </p>
-                <p className="truncate" style={{ fontSize: '12px', color: '#888888' }}>
-                  {c.email}
-                  {c.phone && ` · ${c.phone}`}
+                <p
+                  style={{
+                    margin: '3px 0 0',
+                    fontSize: '12px',
+                    color: '#6F7190',
+                    lineHeight: 1.35,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {contact.email}
                 </p>
+                {contact.phone && (
+                  <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#8C8EA9', lineHeight: 1.3 }}>
+                    {contact.phone}
+                  </p>
+                )}
               </div>
-              {c.company && (
+
+              {contact.company && (
                 <span
-                  className="flex-shrink-0 rounded-[4px] px-2 py-0.5 text-[11px]"
-                  style={{ background: '#F5F4FF', color: '#534AB7' }}
+                  style={{
+                    flexShrink: 0,
+                    borderRadius: '999px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    border: '0.5px solid #E0DEF7',
+                    background: '#F5F4FF',
+                    color: '#534AB7',
+                    maxWidth: '130px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
                 >
-                  {c.company}
+                  {contact.company}
                 </span>
               )}
             </div>
