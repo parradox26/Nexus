@@ -138,6 +138,11 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embedd
   }, [refreshLocations])
 
   useEffect(() => {
+    if (embeddedLocationId) {
+      // Embedded mode: always lock selection to the injected sub-account location
+      onSelectLocation(embeddedLocationId)
+      return
+    }
     const available = new Set(locations.map((loc) => loc.locationId))
     if (locations.length === 0 && selectedLocationId !== null) {
       onSelectLocation(null)
@@ -146,7 +151,7 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embedd
     if (locations.length > 0 && (!selectedLocationId || !available.has(selectedLocationId))) {
       onSelectLocation(locations[0].locationId)
     }
-  }, [locations, onSelectLocation, selectedLocationId])
+  }, [locations, embeddedLocationId, onSelectLocation, selectedLocationId])
 
   const visibleLocations = useMemo(() => {
     const sorted = [...locations].sort((a, b) => a.locationId.localeCompare(b.locationId))
@@ -226,7 +231,7 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embedd
             whiteSpace: 'nowrap',
           }}
         >
-          {connected ? `${locations.length} connected` : 'Not connected'}
+          {connected ? (embeddedLocationId ? 'Connected' : `${visibleLocations.length} connected`) : 'Not connected'}
         </span>
       </div>
 
@@ -258,26 +263,30 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embedd
             </div>
           ) : (
             <>
-              <label style={{ fontSize: '12px', color: '#534AB7', fontWeight: 500 }}>
-                Destination location
-              </label>
-              <select
-                value={selectedLocationId ?? ''}
-                onChange={(e) => onSelectLocation(e.target.value || null)}
-                style={{
-                  border: '0.5px solid #E0DEF7',
-                  borderRadius: '8px',
-                  padding: '8px 10px',
-                  fontSize: '12px',
-                  color: '#1A1A2E',
-                }}
-              >
-                {visibleLocations.map((loc) => (
-                  <option key={loc.locationId} value={loc.locationId}>
-                    {loc.locationId}
-                  </option>
-                ))}
-              </select>
+              {!embeddedLocationId && (
+                <>
+                  <label style={{ fontSize: '12px', color: '#534AB7', fontWeight: 500 }}>
+                    Destination location
+                  </label>
+                  <select
+                    value={selectedLocationId ?? ''}
+                    onChange={(e) => onSelectLocation(e.target.value || null)}
+                    style={{
+                      border: '0.5px solid #E0DEF7',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      color: '#1A1A2E',
+                    }}
+                  >
+                    {visibleLocations.map((loc) => (
+                      <option key={loc.locationId} value={loc.locationId}>
+                        {loc.locationId}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
 
               <div style={{ display: 'grid', gap: '8px' }}>
                 {visibleLocations.map((loc) => (
@@ -330,23 +339,25 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embedd
                 ))}
               </div>
 
-              <button
-                onClick={() => void handleConnect()}
-                disabled={connecting}
-                style={{
-                  background: '#fff',
-                  color: '#534AB7',
-                  border: '0.5px solid #E0DEF7',
-                  borderRadius: '8px',
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  cursor: connecting ? 'not-allowed' : 'pointer',
-                  width: 'fit-content',
-                }}
-              >
-                {connecting ? 'Connecting...' : 'Add another location'}
-              </button>
+              {!embeddedLocationId && (
+                <button
+                  onClick={() => void handleConnect()}
+                  disabled={connecting}
+                  style={{
+                    background: '#fff',
+                    color: '#534AB7',
+                    border: '0.5px solid #E0DEF7',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    cursor: connecting ? 'not-allowed' : 'pointer',
+                    width: 'fit-content',
+                  }}
+                >
+                  {connecting ? 'Connecting...' : 'Add another location'}
+                </button>
+              )}
             </>
           )}
         </>
