@@ -5,7 +5,9 @@ import { HighLevelClient } from '../../src/highlevel/highlevel.client'
 // Set encryption key before any imports touch it
 beforeAll(() => {
   process.env.TOKEN_ENCRYPTION_KEY = 'b'.repeat(64)
-  process.env.HL_API_KEY = 'test_key'
+  process.env.HL_CLIENT_ID = 'test_hl_client'
+  process.env.HL_CLIENT_SECRET = 'test_hl_secret'
+  process.env.HL_REDIRECT_URI = 'http://localhost:3000/api/connectors/highlevel/callback'
 })
 
 jest.mock('../../src/auth/token.store', () => ({
@@ -40,7 +42,7 @@ describe('Full sync flow — Facebook mock connector', () => {
     mockCreateOrUpdate = jest.fn().mockResolvedValue({ id: 'hl_123' })
     MockedHLClient.prototype.createOrUpdateContact = mockCreateOrUpdate
     connector = new FacebookConnector()
-    syncEngine = new SyncEngine(new HighLevelClient())
+    syncEngine = new SyncEngine(new HighLevelClient('test_location'))
   })
 
   afterEach(() => {

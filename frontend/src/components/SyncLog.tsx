@@ -1,56 +1,26 @@
 import { useEffect } from 'react'
 import { useSyncLog } from '../hooks/useSyncLog'
 import { RowSkeleton } from './LoadingSkeleton'
-
-const STATUS_META: Record<string, { dot: string; bg: string; text: string; border: string; label: string }> = {
-  success: { dot: '#3B6D11', bg: '#EAF3DE', text: '#3B6D11', border: '#C0DD97', label: 'Success' },
-  partial: { dot: '#854F0B', bg: '#FAEEDA', text: '#854F0B', border: '#FAC775', label: 'Partial' },
-  failed: { dot: '#A32D2D', bg: '#FCEBEB', text: '#A32D2D', border: '#F7C1C1', label: 'Failed' },
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+import { StatusBadge } from './StatusBadge'
+import { ConnectorIcon } from './primitives'
+import { ConnectorSource } from '../types'
 
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`
 }
 
-function StatusPill({ status }: { status: string }) {
-  const s = STATUS_META[status] ?? {
-    dot: '#888888',
-    bg: '#F1EFE8',
-    text: '#5F5E5A',
-    border: '#D3D1C7',
-    label: status,
-  }
-
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '5px',
-        background: s.bg,
-        color: s.text,
-        border: `0.5px solid ${s.border}`,
-        borderRadius: '20px',
-        padding: '2px 9px',
-        fontSize: '11px',
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
-      {s.label}
-    </span>
-  )
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return d === 1 ? 'Yesterday' : `${d}d ago`
 }
+
+const COL = 'minmax(140px, 1.1fr) 110px 100px 100px 100px 110px 110px'
 
 interface Props {
   refreshTrigger: number
@@ -65,7 +35,7 @@ export function SyncLog({ refreshTrigger }: Props) {
 
   if (loading) {
     return (
-      <div style={{ background: '#fff', border: '0.5px solid #E0DEF7', borderRadius: '12px', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', border: '1px solid #E0DEF7', borderRadius: 12, overflow: 'hidden' }}>
         <RowSkeleton />
         <RowSkeleton />
         <RowSkeleton />
@@ -74,21 +44,17 @@ export function SyncLog({ refreshTrigger }: Props) {
   }
 
   if (error) {
-    return <p style={{ fontSize: '13px', color: '#A32D2D' }}>{error}</p>
+    return <p style={{ fontSize: 13, color: '#A32D2D' }}>{error}</p>
   }
 
   if (logs.length === 0) {
     return (
-      <div
-        style={{
-          border: '0.5px dashed #E0DEF7',
-          borderRadius: '12px',
-          padding: '48px 24px',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>No syncs yet</p>
-        <p style={{ fontSize: '12px', color: '#888888', marginTop: '4px' }}>
+      <div style={{
+        border: '1px dashed #E0DEF7', borderRadius: 12,
+        padding: '48px 24px', textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 13, fontWeight: 500, color: '#534AB7', margin: 0 }}>No syncs yet</p>
+        <p style={{ fontSize: 12, color: '#888888', marginTop: 4, margin: '4px 0 0' }}>
           Connect a connector above and click Sync now
         </p>
       </div>
@@ -96,96 +62,86 @@ export function SyncLog({ refreshTrigger }: Props) {
   }
 
   return (
-    <div style={{ background: '#fff', border: '0.5px solid #E0DEF7', borderRadius: '12px', overflow: 'hidden' }}>
-      <div
-        className="hidden sm:grid"
-        style={{
-          gridTemplateColumns: 'minmax(80px, 1fr) 92px 76px 80px 60px 74px minmax(120px, 1fr)',
-          gap: '12px',
-          padding: '9px 16px',
-          borderBottom: '0.5px solid #E0DEF7',
-          background: '#FAFAFE',
-        }}
-      >
-        {['Source', 'Status', 'Attempted', 'Succeeded', 'Failed', 'Duration', 'Time'].map((h) => (
-          <span
-            key={h}
-            style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#7E7FA4',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-            }}
-          >
-            {h}
-          </span>
-        ))}
+    <div className="nx-sync-log" style={{ background: '#FFFFFF', border: '1px solid #E0DEF7', borderRadius: 12, overflowX: 'auto' }}>
+      {/* Header row */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: COL, gap: 12,
+        minWidth: 770,
+        padding: '10px 16px',
+        background: '#FAFAFB', borderBottom: '0.5px solid #E0DEF7',
+        fontSize: 11, color: '#6E6C84', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500,
+      }}>
+        <span>Source</span>
+        <span>Status</span>
+        <span style={{ textAlign: 'right' }}>Attempted</span>
+        <span style={{ textAlign: 'right' }}>Succeeded</span>
+        <span style={{ textAlign: 'right' }}>Failed</span>
+        <span style={{ textAlign: 'right' }}>Duration</span>
+        <span style={{ textAlign: 'right' }}>Time</span>
       </div>
 
-      {logs.map((log, i) => {
-        const isLast = i === logs.length - 1
-
-        return (
-          <div
-            key={log.id}
-            style={{
-              padding: '11px 16px',
-              borderBottom: isLast ? 'none' : '0.5px solid #F1EFE8',
-            }}
-          >
-            <div className="flex flex-col gap-[7px] sm:hidden">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', textTransform: 'capitalize' }}>
-                  {log.source}
-                </span>
-                <StatusPill status={log.status} />
-              </div>
-              <div style={{ fontSize: '12px', color: '#534AB7', fontWeight: 500 }}>
-                {log.succeeded}/{log.attempted} synced
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#A32D2D' }}>{log.failed} failed</span>
-                <span style={{ fontSize: '11px', color: '#888888' }}>{formatDuration(log.durationMs)}</span>
-                <span style={{ fontSize: '11px', color: '#888888' }}>{formatDate(log.createdAt)}</span>
-              </div>
-            </div>
-
-            <div
-              className="hidden sm:grid"
-              style={{
-                gridTemplateColumns: 'minmax(80px, 1fr) 92px 76px 80px 60px 74px minmax(120px, 1fr)',
-                gap: '12px',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e', textTransform: 'capitalize' }}>
-                {log.source}
+      {logs.map((log, i) => (
+        <div
+          key={log.id}
+          className="nx-row"
+          style={{
+            display: 'grid', gridTemplateColumns: COL, gap: 12,
+            minWidth: 770,
+            padding: '11px 16px', alignItems: 'center',
+            borderTop: i === 0 ? 'none' : '0.5px solid #EFEDE6',
+            fontSize: 13,
+          }}
+        >
+          {/* Source */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <ConnectorIcon source={log.source as ConnectorSource} size={22} />
+            <span style={{ color: '#1F1E2C', fontWeight: 500, textTransform: 'capitalize' }}>
+              {log.source.replace('_mock', '')}
+            </span>
+            {log.triggeredBy === 'scheduled' && (
+              <span style={{
+                fontSize: 10, color: '#534AB7', background: '#EEEDFE',
+                border: '0.5px solid #CECBF6', padding: '1px 6px', borderRadius: 4,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+              }}>
+                cron
               </span>
-              <StatusPill status={log.status} />
-              <span style={{ fontSize: '13px', color: '#1a1a2e' }}>{log.attempted}</span>
-              <span style={{ fontSize: '13px', color: '#534AB7', fontWeight: 500 }}>{log.succeeded}</span>
-              <span style={{ fontSize: '13px', color: log.failed > 0 ? '#A32D2D' : '#888888' }}>{log.failed}</span>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontFamily: 'monospace',
-                  color: '#888888',
-                  background: '#F5F4FF',
-                  padding: '1px 6px',
-                  borderRadius: '4px',
-                  width: 'fit-content',
-                }}
-              >
-                {formatDuration(log.durationMs)}
-              </span>
-              <span style={{ fontSize: '12px', color: '#888888', whiteSpace: 'nowrap' }}>
-                {formatDate(log.createdAt)}
-              </span>
-            </div>
+            )}
           </div>
-        )
-      })}
+
+          {/* Status */}
+          <StatusBadge status={log.status} size="sm" />
+
+          {/* Attempted */}
+          <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#1F1E2C' }}>
+            {log.attempted}
+          </span>
+
+          {/* Succeeded */}
+          <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#3B6D11', fontWeight: 500 }}>
+            {log.succeeded}
+          </span>
+
+          {/* Failed */}
+          <span style={{
+            textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+            color: log.failed > 0 ? '#A32D2D' : '#A6A39C',
+            fontWeight: log.failed > 0 ? 500 : 400,
+          }}>
+            {log.failed}
+          </span>
+
+          {/* Duration */}
+          <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#6E6C84' }}>
+            {formatDuration(log.durationMs)}
+          </span>
+
+          {/* Time */}
+          <span style={{ textAlign: 'right', color: '#6E6C84' }}>
+            {relativeTime(log.createdAt)}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

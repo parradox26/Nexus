@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { ConnectorStatus } from '../types'
 import { ConnectorCard } from './ConnectorCard'
 import { CardSkeleton } from './LoadingSkeleton'
@@ -9,32 +8,26 @@ interface Props {
   error: string | null
   onRefresh: () => void
   onSyncComplete: () => void
+  selectedLocationId: string | null
 }
 
-export function ConnectorList({ connectors, loading, error, onRefresh, onSyncComplete }: Props) {
-  const [isTwoColumn, setIsTwoColumn] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return window.matchMedia('(min-width: 760px)').matches
-  })
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const media = window.matchMedia('(min-width: 760px)')
-    const onChange = (e: MediaQueryListEvent) => setIsTwoColumn(e.matches)
-    setIsTwoColumn(media.matches)
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
-  }, [])
-
+export function ConnectorList({
+  connectors,
+  loading,
+  error,
+  onRefresh,
+  onSyncComplete,
+  selectedLocationId,
+}: Props) {
   const gridStyle = {
     display: 'grid',
-    gap: '16px',
-    gridTemplateColumns: isTwoColumn ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))',
+    gap: 16,
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
   } as const
 
   if (loading) {
     return (
-      <div style={gridStyle}>
+      <div className="nx-connectors-grid" style={gridStyle}>
         <CardSkeleton />
         <CardSkeleton />
         <CardSkeleton />
@@ -44,27 +37,17 @@ export function ConnectorList({ connectors, loading, error, onRefresh, onSyncCom
 
   if (error) {
     return (
-      <div
-        style={{
-          background: '#FCEBEB',
-          border: '0.5px solid #F7C1C1',
-          borderRadius: '12px',
-          padding: '20px 24px',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ fontSize: '13px', color: '#A32D2D' }}>{error}</p>
+      <div style={{
+        background: '#FCEBEB', border: '1px solid #F7C1C1',
+        borderRadius: 12, padding: '20px 24px', textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 13, color: '#A32D2D', margin: 0 }}>{error}</p>
         <button
           onClick={onRefresh}
           style={{
-            marginTop: '10px',
-            fontSize: '12px',
-            fontWeight: 500,
-            color: '#A32D2D',
-            textDecoration: 'underline',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
+            marginTop: 10, fontSize: 12, fontWeight: 500,
+            color: '#A32D2D', textDecoration: 'underline',
+            background: 'none', border: 'none', cursor: 'pointer',
           }}
         >
           Retry
@@ -75,30 +58,22 @@ export function ConnectorList({ connectors, loading, error, onRefresh, onSyncCom
 
   if (connectors.length === 0) {
     return (
-      <div
-        style={{
-          border: '0.5px dashed #E0DEF7',
-          borderRadius: '12px',
-          padding: '48px 24px',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>No connectors available</p>
-        <p style={{ fontSize: '12px', color: '#888888', marginTop: '4px' }}>
-          Add connectors in the backend configuration
-        </p>
+      <div style={{ border: '1px dashed #E0DEF7', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
+        <p style={{ fontSize: 13, fontWeight: 500, color: '#534AB7', margin: 0 }}>No connectors available</p>
+        <p style={{ fontSize: 12, color: '#888888', margin: '4px 0 0' }}>Add connectors in the backend configuration</p>
       </div>
     )
   }
 
   return (
-    <div style={gridStyle}>
+    <div className="nx-connectors-grid" style={gridStyle}>
       {connectors.map((connector) => (
         <ConnectorCard
           key={connector.source}
           connector={connector}
           onRefresh={onRefresh}
           onSyncComplete={onSyncComplete}
+          selectedLocationId={selectedLocationId}
         />
       ))}
     </div>

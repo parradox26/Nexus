@@ -74,11 +74,11 @@ const MOCK_LEADS: FacebookLead[] = [
     id: 'fb_lead_005',
     created_time: '2024-01-19T16:20:00+0000',
     field_data: [
-      { name: 'full_name', values: ['Vikram Singh'] },
-      { name: 'email', values: ['vikram.singh@example.com'] },
-      { name: 'phone_number', values: ['+91-9765432109'] },
-      { name: 'campaign_id', values: ['camp_789'] },
-      { name: 'ad_id', values: ['ad_303'] },
+      { name: 'full_name', values: ['Vikram Sethi'] },
+      { name: 'email', values: ['vikram.sethi@example.com'] },
+      { name: 'phone_number', values: ['+91-9755432109'] },
+      { name: 'campaign_id', values: ['camp_79'] },
+      { name: 'ad_id', values: ['ad_33'] },
     ],
   },
 ]

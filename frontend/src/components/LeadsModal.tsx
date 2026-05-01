@@ -1,34 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ConnectorSource, UnifiedLead } from '../types'
 import { api } from '../api/client'
-import { LeadRow } from './LeadRow'
+import { ConnectorIcon, Avatar, MonoPill, Icon, Spinner } from './primitives'
 
 interface Props {
   source: ConnectorSource
   onClose: () => void
 }
 
-function Spinner() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '54px 0' }}>
-      <svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px', color: '#6366F1' }}>
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-        <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
-          <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.9s" repeatCount="indefinite" />
-        </path>
-      </svg>
-    </div>
-  )
-}
-
 export function LeadsModal({ source, onClose }: Props) {
   const [leads, setLeads] = useState<UnifiedLead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return window.matchMedia('(min-width: 640px)').matches
-  })
 
   useEffect(() => {
     api.leads
@@ -38,145 +21,127 @@ export function LeadsModal({ source, onClose }: Props) {
       .finally(() => setLoading(false))
   }, [source])
 
+  const onKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }, [onClose])
+
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const media = window.matchMedia('(min-width: 640px)')
-    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
-    setIsDesktop(media.matches)
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
-  }, [])
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onKeyDown])
+
+  const sourceName = source.replace('_mock', '').replace(/^./, (s) => s.toUpperCase())
+  const subtitle = loading ? 'Loading…' : error
+    ? 'Could not load leads'
+    : `${leads.length} records with campaign metadata`
+
+  const COL = 'minmax(220px, 1.4fr) 130px 130px 130px'
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        background: 'rgba(26, 26, 46, 0.48)',
-      }}
       onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(28, 26, 60, 0.32)',
+        backdropFilter: 'blur(2px)',
+        display: 'grid', placeItems: 'center',
+        zIndex: 80, padding: 24,
+        animation: 'nx-fade 160ms ease-out',
+      }}
     >
       <div
-        style={{
-          width: '100%',
-          maxWidth: '760px',
-          maxHeight: '82vh',
-          borderRadius: '12px',
-          border: '0.5px solid #E0DEF7',
-          background: '#FFFFFF',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: '0 20px 50px rgba(29, 36, 78, 0.2)',
-        }}
         onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#FFFFFF', borderRadius: 14,
+          width: '100%', maxWidth: 880, maxHeight: '82vh',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 24px 64px -16px rgba(28, 26, 60, 0.25), 0 0 0 1px rgba(28, 26, 60, 0.04)',
+          overflow: 'hidden',
+          animation: 'nx-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        }}
       >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            padding: '14px 16px',
-            borderBottom: '0.5px solid #E0DEF7',
-            background: 'linear-gradient(180deg, #F9F8FF 0%, #FFFFFF 100%)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '9px',
-                border: '0.5px solid #FAC775',
-                background: '#FAEEDA',
-                color: '#854F0B',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '13px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                flexShrink: 0,
-              }}
-            >
-              {source[0]}
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1A1A2E', textTransform: 'capitalize' }}>
-                {source} leads
-              </p>
-              {!loading && (
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6F7190' }}>
-                  {leads.length} records with campaign metadata
-                </p>
-              )}
-            </div>
+        {/* Modal header */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          padding: '16px 20px',
+          borderBottom: '0.5px solid #E0DEF7',
+        }}>
+          <ConnectorIcon source={source} size={36} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#1F1E2C' }}>{sourceName} leads</div>
+            <div style={{ fontSize: 12.5, color: '#6E6C84', marginTop: 2 }}>{subtitle}</div>
           </div>
-
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '8px',
-              border: '0.5px solid #E0DEF7',
-              background: '#FFFFFF',
-              color: '#7E7FA4',
-              fontSize: '18px',
-              lineHeight: 1,
-              cursor: 'pointer',
-              flexShrink: 0,
+              background: 'transparent', border: 'none', padding: 6, borderRadius: 6,
+              cursor: 'pointer', color: '#6E6C84', display: 'grid', placeItems: 'center',
             }}
+            className="nx-icon-btn"
           >
-            x
+            <Icon.X size={16} />
           </button>
         </div>
 
         {/* Column headers */}
-        {!loading && !error && leads.length > 0 && isDesktop && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 140px 100px 100px',
-              gap: '8px',
-              padding: '8px 14px',
-              borderBottom: '0.5px solid #E0DEF7',
-              background: '#FAFAFE',
-            }}
-          >
-            {['Contact', 'Lead Source', 'Campaign', 'Ad'].map((h) => (
-              <span key={h} style={{ fontSize: '11px', fontWeight: 600, color: '#7E7FA4', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                {h}
-              </span>
-            ))}
-          </div>
-        )}
+        <div style={{
+          display: 'grid', gridTemplateColumns: COL, gap: 16,
+          padding: '10px 20px',
+          background: '#FAFAFB', borderBottom: '0.5px solid #E0DEF7',
+          fontSize: 11, color: '#6E6C84', textTransform: 'uppercase',
+          letterSpacing: '0.05em', fontWeight: 500,
+        }}>
+          <span>Contact</span>
+          <span>Lead Source</span>
+          <span>Campaign</span>
+          <span>Ad</span>
+        </div>
 
-        <div style={{ overflowY: 'auto', flex: 1, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {loading && <Spinner />}
-
-          {error && (
-            <p style={{ margin: 0, padding: '8px', fontSize: '13px', color: '#A32D2D' }}>{error}</p>
-          )}
-
-          {!loading && !error && leads.length === 0 && (
-            <div style={{ padding: '42px 8px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>No leads yet</p>
-              <p style={{ fontSize: '12px', color: '#888888', marginTop: '4px' }}>
-                This connector has not returned any lead data
-              </p>
+        {/* Content */}
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {loading && (
+            <div style={{ padding: 48, display: 'grid', placeItems: 'center' }}>
+              <Spinner size={24} color="#6366F1" />
             </div>
           )}
-
-          {!loading && !error && leads.map((lead) => (
-            <LeadRow key={lead.id} lead={lead} isDesktop={isDesktop} />
+          {error && !loading && (
+            <div style={{
+              margin: 24, padding: '10px 12px', borderRadius: 8,
+              background: '#FCEBEB', border: '1px solid #F7C1C1', color: '#A32D2D', fontSize: 13,
+            }}>
+              {error}
+            </div>
+          )}
+          {!loading && !error && leads.length === 0 && (
+            <div style={{ padding: 48, textAlign: 'center', color: '#8A87A1', fontSize: 13 }}>
+              No leads found.
+            </div>
+          )}
+          {!loading && !error && leads.map((lead, i) => (
+            <div
+              key={lead.id}
+              className="nx-row"
+              style={{
+                display: 'grid', gridTemplateColumns: COL,
+                gap: 16, alignItems: 'center',
+                padding: '12px 20px',
+                borderTop: i === 0 ? 'none' : '0.5px solid #EFEDE6',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <Avatar firstName={lead.firstName} lastName={lead.lastName} size={32} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, color: '#1F1E2C' }}>
+                    {lead.firstName} {lead.lastName}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6E6C84' }}>{lead.email}</div>
+                </div>
+              </div>
+              <MonoPill label="src">{lead.leadSource?.replace('_', ':') ?? null}</MonoPill>
+              <MonoPill label="camp">{lead.campaignId?.replace('camp_', '') ?? null}</MonoPill>
+              <MonoPill label="ad">{lead.adId?.replace('ad_', '') ?? null}</MonoPill>
+            </div>
           ))}
         </div>
       </div>

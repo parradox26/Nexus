@@ -12,3 +12,91 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+@media (max-width: 767px) {
+  .nx-app-shell {
+    padding: 14px 10px 28px !important;
+  }
+
+  .nx-app-main {
+    gap: 14px !important;
+  }
+
+  .nx-header {
+    padding: 14px !important;
+    gap: 12px !important;
+    flex-wrap: wrap;
+    align-items: flex-start !important;
+  }
+
+  .nx-header-identity {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .nx-header-title-row {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .nx-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .nx-header-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nx-metrics-strip {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .nx-metric-item {
+    padding: 12px 12px !important;
+  }
+
+  .nx-metric-value {
+    font-size: 22px !important;
+    line-height: 0.95 !important;
+    letter-spacing: -0.015em;
+  }
+
+  .nx-metric-sub {
+    line-height: 1.35;
+  }
+
+  .nx-connectors-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .nx-connector-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+  }
+
+  .nx-connector-actions .nx-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nx-connector-actions-spacer {
+    display: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .nx-metrics-strip {
+    grid-template-columns: 1fr !important;
+  }
+
+  .nx-header-actions,
+  .nx-connector-actions {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -6,6 +6,7 @@ import { contactsRouter } from './routes/contacts.routes'
 import { leadsRouter } from './routes/leads.routes'
 import { syncRouter } from './routes/sync.routes'
 import { authRouter } from './routes/auth.routes'
+import { highlevelRouter } from './routes/highlevel.routes'
 import { errorMiddleware } from './middleware/error.middleware'
 import { getAllConnectors } from './connectors'
 import { logger } from './utils/logger'
@@ -15,11 +16,16 @@ const app = express()
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-// CORS for HighLevel Custom JS embedding
+// CORS + iframe embedding for HighLevel Custom Pages
 app.use((_req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-internal-key')
+  // Allow HighLevel to embed this app in an iframe (Custom Pages)
+  res.header(
+    'Content-Security-Policy',
+    'frame-ancestors https://*.gohighlevel.com https://*.leadconnectorhq.com https://*.msgsndr.com'
+  )
   if (_req.method === 'OPTIONS') {
     res.sendStatus(204)
     return
@@ -27,6 +33,7 @@ app.use((_req, res, next) => {
   next()
 })
 
+app.use('/api/hl', highlevelRouter)
 app.use('/api/connectors', connectorsRouter)
 app.use('/api/contacts', contactsRouter)
 app.use('/api/leads', leadsRouter)

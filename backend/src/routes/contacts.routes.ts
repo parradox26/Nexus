@@ -5,6 +5,18 @@ import { UnifiedContact } from '../schema'
 
 const router = Router()
 
+async function resolveLocationId(explicitLocationId?: string): Promise<string> {
+  if (explicitLocationId) return explicitLocationId
+  const locations = await HighLevelClient.listConnectedLocations()
+  if (locations.length === 1) return locations[0].locationId
+  if (locations.length === 0) {
+    throw new Error('No HighLevel destination connected. Connect HighLevel first.')
+  }
+  throw new Error(
+    'Multiple HighLevel destinations connected. Provide locationId in request body.'
+  )
+}
+
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   const source = req.query['source']
   const limit = req.query['limit'] ?? '20'
@@ -31,7 +43,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 })
 
 router.post('/', async (req: Request, res: Response): Promise<void> => {
-  const contact = req.body as Omit<UnifiedContact, 'id' | 'syncedAt'>
+  const body = req.body as Omit<UnifiedContact, 'id' | 'syncedAt'> & { locationId?: string }
+  const { locationId: explicitLocationId, ...contact } = body
 
   if (!contact.email || !contact.firstName || !contact.source) {
     res.status(400).json({ success: false, error: 'firstName, email, and source are required' })
@@ -39,7 +52,8 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const hlClient = new HighLevelClient()
+    const locationId = await resolveLocationId(explicitLocationId)
+    const hlClient = new HighLevelClient(locationId)
     const result = await hlClient.createOrUpdateContact({
       ...contact,
       id: crypto.randomUUID(),

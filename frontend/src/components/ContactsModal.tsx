@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ConnectorSource, UnifiedContact } from '../types'
 import { api } from '../api/client'
+import { ConnectorIcon, Avatar, Icon, Spinner } from './primitives'
 
 interface Props {
   source: ConnectorSource
@@ -11,6 +12,7 @@ export function ContactsModal({ source, onClose }: Props) {
   const [contacts, setContacts] = useState<UnifiedContact[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     api.contacts
@@ -20,238 +22,164 @@ export function ContactsModal({ source, onClose }: Props) {
       .finally(() => setLoading(false))
   }, [source])
 
-  function getDisplayName(contact: UnifiedContact): string {
-    const first = contact.firstName.trim()
-    const last = contact.lastName.trim()
-    const fullName = `${first} ${last}`.trim()
-    if (fullName) return fullName
-    const fallback = contact.email.split('@')[0]
-    return fallback || 'Unnamed contact'
-  }
+  const onKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }, [onClose])
 
-  function getAvatarLabel(contact: UnifiedContact): string {
-    const first = contact.firstName.trim()
-    const last = contact.lastName.trim()
-    if (first && last) return `${first[0]}${last[0]}`.toUpperCase()
-    if (first) return first[0].toUpperCase()
-    if (contact.email) return contact.email[0].toUpperCase()
-    return '?'
-  }
+  useEffect(() => {
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onKeyDown])
+
+  const filtered = contacts.filter((c) => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return `${c.firstName} ${c.lastName}`.toLowerCase().includes(q)
+      || (c.email ?? '').toLowerCase().includes(q)
+      || (c.company ?? '').toLowerCase().includes(q)
+  })
+
+  const sourceName = source.replace('_mock', '').replace(/^./, (s) => s.toUpperCase())
+  const subtitle = loading ? 'Loading…' : error
+    ? 'Could not load contacts'
+    : `${filtered.length} of ${contacts.length} records`
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        background: 'rgba(26, 26, 46, 0.48)',
-      }}
       onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(28, 26, 60, 0.32)',
+        backdropFilter: 'blur(2px)',
+        display: 'grid', placeItems: 'center',
+        zIndex: 80, padding: 24,
+        animation: 'nx-fade 160ms ease-out',
+      }}
     >
       <div
-        style={{
-          width: '100%',
-          maxWidth: '720px',
-          maxHeight: '82vh',
-          borderRadius: '12px',
-          border: '0.5px solid #E0DEF7',
-          background: '#FFFFFF',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: '0 20px 50px rgba(29, 36, 78, 0.2)',
-        }}
         onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#FFFFFF', borderRadius: 14,
+          width: '100%', maxWidth: 760, maxHeight: '82vh',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 24px 64px -16px rgba(28, 26, 60, 0.25), 0 0 0 1px rgba(28, 26, 60, 0.04)',
+          overflow: 'hidden',
+          animation: 'nx-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            padding: '14px 16px',
-            borderBottom: '0.5px solid #E0DEF7',
-            background: 'linear-gradient(180deg, #F9F8FF 0%, #FFFFFF 100%)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '9px',
-                border: '0.5px solid #CECBF6',
-                background: '#EEEDFE',
-                color: '#534AB7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '13px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                flexShrink: 0,
-              }}
-            >
-              {source[0]}
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1A1A2E', textTransform: 'capitalize' }}>
-                {source} contacts
-              </p>
-              {!loading && (
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6F7190' }}>
-                  {contacts.length} records
-                </p>
-              )}
-            </div>
+        {/* Modal header */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          padding: '16px 20px',
+          borderBottom: '0.5px solid #E0DEF7',
+        }}>
+          <ConnectorIcon source={source} size={36} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#1F1E2C' }}>{sourceName} contacts</div>
+            <div style={{ fontSize: 12.5, color: '#6E6C84', marginTop: 2 }}>{subtitle}</div>
           </div>
-
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '8px',
-              border: '0.5px solid #E0DEF7',
-              background: '#FFFFFF',
-              color: '#7E7FA4',
-              fontSize: '18px',
-              lineHeight: 1,
-              cursor: 'pointer',
-              flexShrink: 0,
+              background: 'transparent', border: 'none', padding: 6, borderRadius: 6,
+              cursor: 'pointer', color: '#6E6C84', display: 'grid', placeItems: 'center',
             }}
+            className="nx-icon-btn"
           >
-            x
+            <Icon.X size={16} />
           </button>
         </div>
 
-        <div style={{ overflowY: 'auto', flex: 1, padding: '14px' }}>
-          {loading && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '54px 0' }}>
-              <svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px', color: '#6366F1' }}>
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-                <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from="0 12 12"
-                    to="360 12 12"
-                    dur="0.9s"
-                    repeatCount="indefinite"
-                  />
-                </path>
-              </svg>
-            </div>
-          )}
-
-          {error && (
-            <p style={{ margin: 0, padding: '8px', fontSize: '13px', color: '#A32D2D' }}>
-              {error}
-            </p>
-          )}
-
-          {!loading && !error && contacts.length === 0 && (
-            <div style={{ padding: '42px 8px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>No contacts yet</p>
-              <p style={{ fontSize: '12px', color: '#888888', marginTop: '4px' }}>
-                Sync this connector to pull in contacts
-              </p>
-            </div>
-          )}
-
-          {!loading && !error && contacts.map((contact) => (
-            <div
-              key={contact.id}
+        {/* Search bar */}
+        <div style={{ padding: '12px 20px', borderBottom: '0.5px solid #EFEDE6', background: '#FAFAFB' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: '#FFFFFF', border: '1px solid #E0DEF7',
+            borderRadius: 8, padding: '8px 10px',
+          }}>
+            <Icon.Search size={14} color="#8A87A1" />
+            <input
+              type="text"
+              placeholder="Search name, email, company…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               style={{
-                border: '0.5px solid #E0DEF7',
-                borderRadius: '10px',
-                padding: '11px 12px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                background: '#FFFFFF',
-                boxShadow: '0 1px 0 rgba(77, 82, 136, 0.05)',
-                marginBottom: '8px',
+                flex: 1, border: 'none', outline: 'none',
+                fontSize: 13, color: '#1F1E2C', background: 'transparent',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {loading && (
+            <div style={{ padding: 48, display: 'grid', placeItems: 'center' }}>
+              <Spinner size={24} color="#6366F1" />
+            </div>
+          )}
+          {error && !loading && (
+            <div style={{
+              margin: 24, padding: '10px 12px', borderRadius: 8,
+              background: '#FCEBEB', border: '1px solid #F7C1C1', color: '#A32D2D', fontSize: 13,
+            }}>
+              {error}
+            </div>
+          )}
+          {!loading && !error && filtered.length === 0 && (
+            <div style={{ padding: 48, textAlign: 'center', color: '#8A87A1', fontSize: 13 }}>
+              {query ? 'No contacts match your search.' : 'No contacts found.'}
+            </div>
+          )}
+          {!loading && !error && filtered.map((c, i) => (
+            <div
+              key={c.id}
+              className="nx-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr auto',
+                gap: 14, alignItems: 'center',
+                padding: '12px 20px',
+                borderTop: i === 0 ? 'none' : '0.5px solid #EFEDE6',
               }}
             >
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  border: '0.5px solid #CECBF6',
-                  background: '#EEEDFE',
-                  color: '#534AB7',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.02em',
-                }}
-              >
-                {getAvatarLabel(contact)}
+              <Avatar firstName={c.firstName} lastName={c.lastName} size={36} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: '#1F1E2C' }}>
+                  {c.firstName} {c.lastName}
+                </div>
+                <div style={{
+                  fontSize: 12.5, color: '#6E6C84',
+                  display: 'flex', gap: 12, alignItems: 'center',
+                  flexWrap: 'wrap', marginTop: 2,
+                }}>
+                  {c.email && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Icon.Mail size={11} />{c.email}
+                    </span>
+                  )}
+                  {c.phone && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Icon.Phone size={11} />{c.phone}
+                    </span>
+                  )}
+                  {c.company && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Icon.Building size={11} />{c.company}
+                    </span>
+                  )}
+                </div>
               </div>
-
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#1A1A2E',
-                    lineHeight: 1.3,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {getDisplayName(contact)}
-                </p>
-                <p
-                  style={{
-                    margin: '3px 0 0',
-                    fontSize: '12px',
-                    color: '#6F7190',
-                    lineHeight: 1.35,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {contact.email}
-                </p>
-                {contact.phone && (
-                  <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#8C8EA9', lineHeight: 1.3 }}>
-                    {contact.phone}
-                  </p>
-                )}
-              </div>
-
-              {contact.company && (
-                <span
-                  style={{
-                    flexShrink: 0,
-                    borderRadius: '999px',
-                    padding: '4px 8px',
-                    fontSize: '11px',
-                    border: '0.5px solid #E0DEF7',
-                    background: '#F5F4FF',
-                    color: '#534AB7',
-                    maxWidth: '130px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {contact.company}
-                </span>
-              )}
+              <span style={{
+                fontSize: 11, color: '#534AB7', background: '#EEEDFE',
+                border: '0.5px solid #CECBF6', padding: '2px 7px', borderRadius: 4,
+                fontFamily: "ui-monospace, 'SF Mono', monospace",
+                whiteSpace: 'nowrap',
+              }}>
+                {c.sourceId || c.id}
+              </span>
             </div>
           ))}
         </div>
