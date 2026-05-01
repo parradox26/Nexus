@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { ConnectorStatus } from '../types'
 import { ConnectorCard } from './ConnectorCard'
 import { CardSkeleton } from './LoadingSkeleton'
@@ -11,9 +12,29 @@ interface Props {
 }
 
 export function ConnectorList({ connectors, loading, error, onRefresh, onSyncComplete }: Props) {
+  const [isTwoColumn, setIsTwoColumn] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.matchMedia('(min-width: 760px)').matches
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const media = window.matchMedia('(min-width: 760px)')
+    const onChange = (e: MediaQueryListEvent) => setIsTwoColumn(e.matches)
+    setIsTwoColumn(media.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+
+  const gridStyle = {
+    display: 'grid',
+    gap: '16px',
+    gridTemplateColumns: isTwoColumn ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))',
+  } as const
+
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div style={gridStyle}>
         <CardSkeleton />
         <CardSkeleton />
         <CardSkeleton />
@@ -71,7 +92,7 @@ export function ConnectorList({ connectors, loading, error, onRefresh, onSyncCom
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div style={gridStyle}>
       {connectors.map((connector) => (
         <ConnectorCard
           key={connector.source}

@@ -66,7 +66,12 @@ function LeadIdentity({ lead }: { lead: UnifiedLead }) {
   )
 }
 
-export function LeadRow({ lead }: { lead: UnifiedLead }) {
+interface Props {
+  lead: UnifiedLead
+  isDesktop: boolean
+}
+
+export function LeadRow({ lead, isDesktop }: Props) {
   return (
     <div
       style={{
@@ -76,43 +81,47 @@ export function LeadRow({ lead }: { lead: UnifiedLead }) {
         background: '#FFFFFF',
       }}
     >
-      <div className="sm:hidden" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <LeadIdentity lead={lead} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          <MetaPill label="src" value={lead.leadSource ?? '-'} />
-          <MetaPill label="camp" value={lead.campaignId ?? '-'} />
-          <MetaPill label="ad" value={lead.adId ?? '-'} />
+      {!isDesktop && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <LeadIdentity lead={lead} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <MetaPill label="src" value={lead.leadSource ?? '-'} />
+            <MetaPill label="camp" value={lead.campaignId ?? '-'} />
+            <MetaPill label="ad" value={lead.adId ?? '-'} />
+          </div>
         </div>
-      </div>
+      )}
 
-      <div
-        className="hidden sm:grid"
-        style={{
-          gridTemplateColumns: '1fr 140px 100px 100px',
-          gap: '8px',
-          alignItems: 'center',
-        }}
-      >
-        <LeadIdentity lead={lead} />
+      {isDesktop && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 140px 100px 100px',
+            gap: '8px',
+            alignItems: 'center',
+          }}
+        >
+          <LeadIdentity lead={lead} />
 
-        <div>
-          {lead.leadSource
-            ? <MetaPill label="src" value={lead.leadSource} />
-            : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>-</span>}
+          <div>
+            {lead.leadSource
+              ? <MetaPill label="src" value={lead.leadSource} />
+              : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>-</span>}
+          </div>
+
+          <div>
+            {lead.campaignId
+              ? <MetaPill label="camp" value={lead.campaignId} />
+              : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>-</span>}
+          </div>
+
+          <div>
+            {lead.adId
+              ? <MetaPill label="ad" value={lead.adId} />
+              : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>-</span>}
+          </div>
         </div>
-
-        <div>
-          {lead.campaignId
-            ? <MetaPill label="camp" value={lead.campaignId} />
-            : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>-</span>}
-        </div>
-
-        <div>
-          {lead.adId
-            ? <MetaPill label="ad" value={lead.adId} />
-            : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>-</span>}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

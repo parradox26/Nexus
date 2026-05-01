@@ -25,6 +25,10 @@ export function LeadsModal({ source, onClose }: Props) {
   const [leads, setLeads] = useState<UnifiedLead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.matchMedia('(min-width: 640px)').matches
+  })
 
   useEffect(() => {
     api.leads
@@ -33,6 +37,15 @@ export function LeadsModal({ source, onClose }: Props) {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load leads'))
       .finally(() => setLoading(false))
   }, [source])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const media = window.matchMedia('(min-width: 640px)')
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    setIsDesktop(media.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
 
   return (
     <div
@@ -127,10 +140,10 @@ export function LeadsModal({ source, onClose }: Props) {
         </div>
 
         {/* Column headers */}
-        {!loading && !error && leads.length > 0 && (
+        {!loading && !error && leads.length > 0 && isDesktop && (
           <div
-            className="hidden sm:grid"
             style={{
+              display: 'grid',
               gridTemplateColumns: '1fr 140px 100px 100px',
               gap: '8px',
               padding: '8px 14px',
@@ -162,7 +175,9 @@ export function LeadsModal({ source, onClose }: Props) {
             </div>
           )}
 
-          {!loading && !error && leads.map((lead) => <LeadRow key={lead.id} lead={lead} />)}
+          {!loading && !error && leads.map((lead) => (
+            <LeadRow key={lead.id} lead={lead} isDesktop={isDesktop} />
+          ))}
         </div>
       </div>
     </div>

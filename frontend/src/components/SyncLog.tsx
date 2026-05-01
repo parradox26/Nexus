@@ -134,7 +134,7 @@ export function SyncLog({ refreshTrigger }: Props) {
               borderBottom: isLast ? 'none' : '0.5px solid #F1EFE8',
             }}
           >
-            <div className="sm:hidden" style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+            <div className="flex flex-col gap-[7px] sm:hidden">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', textTransform: 'capitalize' }}>
                   {log.source}
