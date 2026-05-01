@@ -48,13 +48,15 @@ highlevel-integration-platform/
 │   │   ├── routes/
 │   │   │   ├── connectors.routes.ts  # GET /api/connectors, POST /:source/connect, DELETE /:source/disconnect
 │   │   │   ├── contacts.routes.ts    # GET /api/contacts?source=&limit=&skip=
-│   │   │   ├── sync.routes.ts        # POST /api/sync/:source, GET /api/sync/logs
+│   │   │   ├── leads.routes.ts       # GET /api/leads?source=&limit=&skip=
+│   │   │   ├── sync.routes.ts        # POST /api/sync/:source, POST /api/sync/:source/leads, GET /api/sync/logs
 │   │   │   └── auth.routes.ts        # GET /api/connectors/:source/callback (OAuth)
 │   │   ├── utils/
 │   │   │   ├── crypto.ts             # AES-256-GCM encrypt/decrypt (fresh IV per call)
 │   │   │   └── logger.ts             # Pino logger
 │   │   └── app.ts                    # Express app, CORS *, error middleware
 │   └── .env.example                  # All required env vars documented
+├── railway.json                      # Railway deploy config — build + start commands
 └── frontend/
     ├── public/nexus_logo.svg         # Logo file — header loads this via <img> + CSS filter
     ├── tailwind.config.js            # Nexus color tokens (primary, n-bg, n-border, etc.)
@@ -116,7 +118,9 @@ All responses: `{ success: boolean, data?: T, error?: string }`
 | POST | `/api/connectors/:source/connect` | — | `{ authUrl? }` or `{ connected: true }` |
 | DELETE | `/api/connectors/:source/disconnect` | — | `{ connected: false }` |
 | GET | `/api/contacts` | `?source=&limit=&skip=` | `{ contacts[], total }` |
+| GET | `/api/leads` | `?source=&limit=&skip=` | `{ leads[], total }` |
 | POST | `/api/sync/:source` | `{ dryRun?: boolean }` | `SyncResult` |
+| POST | `/api/sync/:source/leads` | `{ dryRun?: boolean }` | `SyncResult` |
 | GET | `/api/sync/logs` | `?source=&limit=` | `{ logs: SyncLog[] }` |
 | GET | `/api/connectors/:source/callback` | `?code=` | OAuth redirect handler |
 
@@ -184,6 +188,21 @@ VITE_API_BASE_URL=http://localhost:3000
 - HL API returns HTTP 400 (not 409) for duplicate contacts — message contains `"does not allow duplicated contacts"`.
 - HL rejects phone numbers with dashes — must be E.164 (`+919876543210` not `+91-9876543210`).
 - Do not send `source` field or `customFields` unless those custom fields are created in the HL account first.
+
+---
+
+## Git & Deployment
+
+- **Git root**: `highlevel-integration-platform/` is the repo root (`.git` lives here). The parent `d:\work\highlevel` is NOT the repo.
+- **Railway**: `railway.json` at repo root. Build command builds frontend then backend. Start command: `node backend/dist/app.js`.
+- **HL embed**: Frontend is served as static files from Express (`/index.js`, `/index.css`). Add to HL Custom Code:
+  ```html
+  <div id="nexus-app" style="min-height:700px;width:100%"></div>
+  <link rel="stylesheet" href="https://YOUR.railway.app/index.css">
+  <script type="module" src="https://YOUR.railway.app/index.js"></script>
+  ```
+- **Frontend mount point**: `main.tsx` looks for `#nexus-app` first, then falls back to `#root` (local dev).
+- **API base URL**: Empty string in production (relative URLs, co-hosted). Set `VITE_API_BASE_URL=http://localhost:3000` in `frontend/.env.local` for local dev.
 
 ---
 
