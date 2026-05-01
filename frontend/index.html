@@ -3,7 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HighLevel Integration Platform</title>
+    <title>Nexus — Integration Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      @keyframes nx-spin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes nx-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.35; }
+      }
+      @keyframes nx-fade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes nx-rise {
+        from { opacity: 0; transform: translateY(8px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      button { font-family: inherit; }
+      .nx-btn:hover:not(:disabled) { filter: brightness(0.95); }
+      .nx-icon-btn:hover { background: rgba(0,0,0,0.05) !important; }
+      .nx-card:hover { border-color: #CECBF6 !important; box-shadow: 0 2px 12px -4px rgba(99,102,241,0.15); }
+      .nx-row:hover { background: #FAFAFB !important; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

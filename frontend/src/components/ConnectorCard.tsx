@@ -1,69 +1,24 @@
-import { useState, type CSSProperties, type ReactElement } from 'react'
+import { useState } from 'react'
 import { ConnectorSource, ConnectorStatus, SyncResult } from '../types'
 import { api } from '../api/client'
 import { StatusBadge } from './StatusBadge'
 import { ContactsModal } from './ContactsModal'
 import { LeadsModal } from './LeadsModal'
+import { ConnectorIcon, Icon, NxButton, ProgressBar, Spinner, getConnectorMeta } from './primitives'
 
 const LEADS_SOURCES: ConnectorSource[] = ['facebook']
 
-function ConnectedIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
-      <path d="M5 10.5l3.5 3.5L15 7" stroke="#3B6D11" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+const CONNECTOR_DESCRIPTIONS: Record<ConnectorSource, string> = {
+  google:      'Pull contacts from Google People API and sync to HighLevel.',
+  facebook:    'Capture leads from Facebook Lead Ads with campaign + ad metadata.',
+  stripe_mock: 'Sync Stripe customers as contacts. Maps plan + lifecycle.',
 }
-
-function MockIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
-      <circle cx="10" cy="10" r="8" stroke="#854F0B" strokeWidth="1.5" strokeDasharray="3.5 2" />
-      <circle cx="10" cy="10" r="2.5" fill="#854F0B" />
-    </svg>
-  )
-}
-
-function ErrorIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
-      <path d="M6 6l8 8M14 6l-8 8" stroke="#A32D2D" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function DisconnectedIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
-      <circle cx="10" cy="10" r="8" stroke="#534AB7" strokeWidth="1.5" opacity="0.5" />
-      <path d="M7 10h6" stroke="#534AB7" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M10 7v6" stroke="#534AB7" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-type IconState = 'connected' | 'mock' | 'error' | 'disconnected'
 
 type OAuthPopupMessage = {
   type: string
   source: ConnectorSource
   success: boolean
   error?: string
-}
-
-const ICON_STATE_STYLES: Record<IconState, { bg: string; icon: ReactElement }> = {
-  connected: { bg: '#EAF3DE', icon: <ConnectedIcon /> },
-  mock: { bg: '#FAEEDA', icon: <MockIcon /> },
-  error: { bg: '#FCEBEB', icon: <ErrorIcon /> },
-  disconnected: { bg: '#EEEDFE', icon: <DisconnectedIcon /> },
-}
-
-const MOCK_SOURCES: ConnectorSource[] = ['facebook', 'stripe_mock']
-
-const SOURCE_LABELS: Record<ConnectorSource, string> = {
-  google: 'google - oauth2',
-  facebook: 'facebook - mock',
-  stripe_mock: 'stripe - mock',
 }
 
 const OAUTH_MESSAGE_TYPE = 'nexus:oauth'
@@ -105,23 +60,17 @@ function waitForOAuthResult(popup: Window, source: ConnectorSource, allowedOrigi
         const { connectors } = await api.connectors.list()
         const target = connectors.find((c) => c.source === source)
         if (target?.connected) {
-          try {
-            popup.close()
-          } catch (_err) {}
+          try { popup.close() } catch (_err) {}
           finish(resolve)
         }
       } catch (_err) {
-        // Ignore transient polling errors while OAuth flow is in progress.
       } finally {
         checking = false
       }
     }
 
     const handlePayload = (data: OAuthPopupMessage) => {
-      if (data.success) {
-        finish(resolve)
-        return
-      }
+      if (data.success) { finish(resolve); return }
       finish(() => reject(new Error(data.error ?? 'Authentication failed')))
     }
 
@@ -140,9 +89,7 @@ function waitForOAuthResult(popup: Window, source: ConnectorSource, allowedOrigi
         const data = JSON.parse(event.newValue) as OAuthPopupMessage
         if (data.type !== OAUTH_MESSAGE_TYPE || data.source !== source) return
         handlePayload(data)
-      } catch (_err) {
-        // Ignore malformed storage payloads.
-      }
+      } catch (_err) {}
     }
 
     window.addEventListener('message', onMessage)
@@ -152,23 +99,17 @@ function waitForOAuthResult(popup: Window, source: ConnectorSource, allowedOrigi
       if (popup.closed) {
         void (async () => {
           await checkConnected()
-          if (!done) {
-            finish(() => reject(new Error('Sign-in window was closed before completion')))
-          }
+          if (!done) finish(() => reject(new Error('Sign-in window was closed before completion')))
         })()
       }
     }, 350)
 
-    const connectionPoll = window.setInterval(() => {
-      void checkConnected()
-    }, 1000)
+    const connectionPoll = window.setInterval(() => { void checkConnected() }, 1000)
 
     const timeout = window.setTimeout(() => {
       void (async () => {
         await checkConnected()
-        if (!done) {
-          finish(() => reject(new Error('Sign-in timed out. Please try again.')))
-        }
+        if (!done) finish(() => reject(new Error('Sign-in timed out. Please try again.')))
       })()
     }, 120000)
   })
@@ -191,38 +132,34 @@ export function ConnectorCard({
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
-  const [syncedCount, setSyncedCount] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showContacts, setShowContacts] = useState(false)
   const [showLeads, setShowLeads] = useState(false)
 
-  const isMock = MOCK_SOURCES.includes(connector.source)
-  const iconState: IconState = error
-    ? 'error'
-    : !connector.connected
-    ? 'disconnected'
-    : isMock
-    ? 'mock'
-    : 'connected'
+  const meta = getConnectorMeta(connector.source)
+  const isMock = connector.source === 'facebook' || connector.source === 'stripe_mock'
+  const leadCapable = LEADS_SOURCES.includes(connector.source)
+  const isLoading = syncing || connecting || disconnecting
 
-  const { bg, icon } = ICON_STATE_STYLES[iconState]
+  let badgeStatus: string = 'disconnected'
+  if (disconnecting) badgeStatus = 'disconnecting'
+  else if (connecting) badgeStatus = 'connecting'
+  else if (syncing) badgeStatus = 'syncing'
+  else if (error && connector.connected) badgeStatus = 'error'
+  else if (connector.connected && isMock) badgeStatus = 'mock'
+  else if (connector.connected) badgeStatus = 'connected'
 
   async function handleConnect() {
     setConnecting(true)
     setError(null)
-
     try {
       const result = await api.connectors.connect(connector.source)
       if (result.authUrl) {
         const popup = window.open(result.authUrl, '_blank', 'width=500,height=600')
-        if (!popup) {
-          throw new Error('Popup was blocked. Please allow popups and try again.')
-        }
-
+        if (!popup) throw new Error('Popup was blocked. Please allow popups and try again.')
         const allowedOrigin = new URL(result.authUrl).origin
         await waitForOAuthResult(popup, connector.source, allowedOrigin)
       }
-
       onRefresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed')
@@ -238,7 +175,6 @@ export function ConnectorCard({
     try {
       const result = await api.sync.run(connector.source, false, selectedLocationId ?? undefined)
       setSyncResult(result)
-      setSyncedCount(result.succeeded)
       onSyncComplete()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed')
@@ -261,6 +197,7 @@ export function ConnectorCard({
     }
   }
 
+  const warningCount = syncResult?.warnings.length ?? 0
   const successRate = syncResult
     ? Math.round((syncResult.succeeded / Math.max(syncResult.attempted, 1)) * 100)
     : null
@@ -268,198 +205,213 @@ export function ConnectorCard({
   return (
     <>
       <div
-        className="bg-white"
+        className="nx-card"
         style={{
-          border: '0.5px solid #E0DEF7',
-          borderRadius: '12px',
-          padding: '1rem 1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
+          background: '#FFFFFF',
+          border: '1px solid #E0DEF7',
+          borderRadius: 12,
+          padding: '18px 20px',
+          display: 'flex', flexDirection: 'column', gap: 12,
+          position: 'relative', overflow: 'hidden',
+          transition: 'border-color 160ms ease, box-shadow 160ms ease',
         }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '10px',
-                background: bg,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {icon}
+        {/* Top row: identity + status */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <ConnectorIcon source={connector.source} size={40} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#1F1E2C' }}>{connector.name}</span>
+              <StatusBadge status={badgeStatus} />
             </div>
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.3 }}>
-                {connector.name}
-              </p>
-              <p
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: '11px',
-                  color: '#534AB7',
-                  background: '#EEEDFE',
-                  padding: '1px 6px',
-                  borderRadius: '4px',
-                  marginTop: '3px',
-                  display: 'inline-block',
-                }}
-              >
-                {SOURCE_LABELS[connector.source]}
-              </p>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 12, color: '#6E6C84', marginTop: 3,
+            }}>
+              <span style={{ fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace" }}>{connector.source}</span>
+              <span style={{ color: '#C9C7BC' }}>-</span>
+              <span>{meta?.auth ?? 'oauth2'}</span>
+              {leadCapable && (
+                <>
+                  <span style={{ color: '#C9C7BC' }}>-</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#534AB7' }}>
+                    <Icon.Megaphone size={11} /> leads
+                  </span>
+                </>
+              )}
             </div>
           </div>
-          <StatusBadge
-            connected={connector.connected}
-            isMock={isMock && connector.connected}
-            isSyncing={syncing}
-          />
+          <button
+            aria-label="More actions"
+            style={{
+              background: 'transparent', border: 'none', padding: 4, borderRadius: 6,
+              cursor: 'pointer', color: '#8A87A1', display: 'grid', placeItems: 'center',
+            }}
+            className="nx-icon-btn"
+          >
+            <Icon.Dots size={16} />
+          </button>
         </div>
 
-        {(connector.lastSync || syncedCount !== null) && (
-          <p style={{ fontSize: '12px', color: '#888888', margin: 0 }}>
-            {connector.lastSync && `Last sync: ${relativeTime(connector.lastSync)}`}
-            {syncedCount !== null && ` - ${syncedCount} contacts`}
-          </p>
-        )}
-
-        {error && (
-          <div
-            style={{
-              background: '#FCEBEB',
-              border: '0.5px solid #F7C1C1',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '12px',
-              color: '#A32D2D',
-            }}
-          >
-            {error}
+        {/* Description when disconnected */}
+        {!connector.connected && !connecting && (
+          <div style={{ fontSize: 13, color: '#6E6C84', lineHeight: 1.5 }}>
+            {CONNECTOR_DESCRIPTIONS[connector.source]}
           </div>
         )}
 
-        {syncResult && successRate !== null && (
-          <div style={{ background: '#F5F4FF', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#534AB7', fontWeight: 500 }}>
-                {syncResult.succeeded} / {syncResult.attempted} synced
-              </span>
-              <span
-                style={{
-                  fontSize: '12px',
+        {/* Last sync row */}
+        {connector.connected && connector.lastSync && !syncResult && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '4px 0 0',
+            borderTop: '0.5px solid #EFEDE6',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#6E6C84' }}>
+              <Icon.Clock size={12} />
+              <span>Last sync</span>
+              <span style={{ color: '#1F1E2C', fontWeight: 500 }}>{relativeTime(connector.lastSync)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Sync result block (after a sync completes) */}
+        {connector.connected && syncResult && successRate !== null && (
+          <>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '4px 0 0', borderTop: '0.5px solid #EFEDE6',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#6E6C84' }}>
+                <Icon.Clock size={12} />
+                <span>Just now</span>
+              </div>
+            </div>
+            <div style={{
+              padding: '12px 14px', borderRadius: 10,
+              background: '#FAFAFB', border: '0.5px solid #EFEDE6',
+              display: 'flex', flexDirection: 'column', gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 13, color: '#1F1E2C', fontWeight: 500 }}>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{syncResult.succeeded}</span>
+                  <span style={{ color: '#8A87A1' }}> / </span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{syncResult.attempted}</span>
+                  <span style={{ color: '#6E6C84', fontWeight: 400 }}>  synced</span>
+                </span>
+                <span style={{
+                  fontSize: 12, fontWeight: 600,
                   color: syncResult.failed > 0 ? '#854F0B' : '#3B6D11',
-                  fontWeight: 500,
-                }}
-              >
-                {successRate}%
-              </span>
-            </div>
-            <div
-              style={{
-                height: '4px',
-                background: '#E0DEF7',
-                borderRadius: '20px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${successRate}%`,
-                  background: syncResult.failed > 0 ? '#FAC775' : '#3B6D11',
-                  borderRadius: '20px',
-                  transition: 'width 0.6s ease',
-                }}
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {successRate}%
+                </span>
+              </div>
+              <ProgressBar
+                succeeded={syncResult.succeeded - warningCount}
+                warnings={warningCount}
+                failed={syncResult.failed}
+                attempted={syncResult.attempted}
               />
+              {(syncResult.failed > 0 || warningCount > 0) && (
+                <div style={{ display: 'flex', gap: 14, fontSize: 11.5, color: '#6E6C84' }}>
+                  {syncResult.failed > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: '#D33B3B' }} />
+                      {syncResult.failed} failed
+                    </span>
+                  )}
+                  {warningCount > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: '#C8810E' }} />
+                      {warningCount} duplicate{warningCount === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
-            {syncResult.warnings.length > 0 && (
-              <p style={{ fontSize: '11px', color: '#854F0B', marginTop: '4px' }}>
-                {syncResult.warnings.length} duplicate{syncResult.warnings.length > 1 ? 's' : ''} skipped (not overwritten)
-              </p>
-            )}
-            {syncResult.failed > 0 && (
-              <p style={{ fontSize: '11px', color: '#A32D2D', marginTop: '2px' }}>
-                {syncResult.failed} failed to sync
-              </p>
-            )}
+          </>
+        )}
+
+        {/* Syncing in-progress panel */}
+        {syncing && (
+          <div style={{
+            padding: '12px 14px', borderRadius: 10,
+            background: '#F5F4FF', border: '1px solid #CECBF6',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Spinner size={16} color="#6366F1" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#534AB7' }}>Syncing in progress...</div>
+              <div style={{ fontSize: 11.5, color: '#6E6C84', marginTop: 2 }}>
+                Fetching from {connector.source.replace('_mock', '')} - pushing to HighLevel
+              </div>
+            </div>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {!connector.connected ? (
-            <button onClick={() => void handleConnect()} disabled={connecting} style={btnPrimary(connecting)}>
-              {connecting ? 'Connecting...' : 'Connect'}
+        {/* Error panel */}
+        {error && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+            padding: '10px 12px', borderRadius: 8,
+            background: '#FCEBEB', border: '1px solid #F7C1C1', color: '#A32D2D',
+          }}>
+            <Icon.Alert size={14} />
+            <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.45 }}>{error}</div>
+            <button
+              onClick={() => setError(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A32D2D', padding: 0, display: 'grid', placeItems: 'center' }}
+            >
+              <Icon.X size={12} />
             </button>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="nx-connector-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+          {!connector.connected && !connecting ? (
+            <NxButton kind="primary" icon={Icon.Plug} onClick={() => void handleConnect()} full>
+              Connect
+            </NxButton>
+          ) : connecting ? (
+            <NxButton kind="primary" loading disabled full>Connecting...</NxButton>
           ) : (
             <>
-              <button onClick={() => void handleSync()} disabled={syncing} style={btnPrimary(syncing)}>
+              <NxButton
+                kind="primary"
+                icon={syncing ? undefined : Icon.Sync}
+                loading={syncing}
+                disabled={isLoading}
+                onClick={() => void handleSync()}
+              >
                 {syncing ? 'Syncing...' : 'Sync now'}
-              </button>
-              <button onClick={() => setShowContacts(true)} style={btnSecondary}>
-                View contacts
-              </button>
-              {LEADS_SOURCES.includes(connector.source) && (
-                <button onClick={() => setShowLeads(true)} style={btnSecondary}>
-                  View leads
-                </button>
+              </NxButton>
+              <NxButton kind="secondary" icon={Icon.Users} disabled={isLoading} onClick={() => setShowContacts(true)}>
+                Contacts
+              </NxButton>
+              {leadCapable && (
+                <NxButton kind="secondary" icon={Icon.Megaphone} disabled={isLoading} onClick={() => setShowLeads(true)}>
+                  Leads
+                </NxButton>
               )}
-              <button onClick={() => void handleDisconnect()} disabled={disconnecting} style={btnDanger(disconnecting)}>
-                Disconnect
-              </button>
+              <div className="nx-connector-actions-spacer" style={{ flex: 1 }} />
+              <NxButton
+                kind="ghost"
+                disabled={isLoading}
+                loading={disconnecting}
+                onClick={() => void handleDisconnect()}
+              >
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </NxButton>
             </>
           )}
         </div>
       </div>
 
-      {showContacts && (
-        <ContactsModal source={connector.source} onClose={() => setShowContacts(false)} />
-      )}
-      {showLeads && (
-        <LeadsModal source={connector.source} onClose={() => setShowLeads(false)} />
-      )}
+      {showContacts && <ContactsModal source={connector.source} onClose={() => setShowContacts(false)} />}
+      {showLeads && <LeadsModal source={connector.source} onClose={() => setShowLeads(false)} />}
     </>
   )
 }
 
-function btnPrimary(disabled: boolean): CSSProperties {
-  return {
-    background: disabled ? '#9496F3' : '#6366F1',
-    color: '#fff',
-    border: `0.5px solid ${disabled ? '#9496F3' : '#6366F1'}`,
-    borderRadius: '8px',
-    padding: '5px 12px',
-    fontSize: '12px',
-    fontWeight: 500,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'background 0.15s',
-  }
-}
-
-const btnSecondary: CSSProperties = {
-  background: '#fff',
-  color: '#534AB7',
-  border: '0.5px solid #E0DEF7',
-  borderRadius: '8px',
-  padding: '5px 12px',
-  fontSize: '12px',
-  fontWeight: 500,
-  cursor: 'pointer',
-}
-
-function btnDanger(disabled: boolean): CSSProperties {
-  return {
-    background: '#fff',
-    color: disabled ? '#C08080' : '#A32D2D',
-    border: `0.5px solid ${disabled ? '#E0DEF7' : '#F7C1C1'}`,
-    borderRadius: '8px',
-    padding: '5px 12px',
-    fontSize: '12px',
-    fontWeight: 500,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-  }
-}
