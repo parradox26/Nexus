@@ -2,10 +2,10 @@ import { useEffect } from 'react'
 import { useSyncLog } from '../hooks/useSyncLog'
 import { RowSkeleton } from './LoadingSkeleton'
 
-const STATUS_DOT: Record<string, string> = {
-  success: '#3B6D11',
-  partial: '#854F0B',
-  failed: '#A32D2D',
+const STATUS_META: Record<string, { dot: string; bg: string; text: string; border: string; label: string }> = {
+  success: { dot: '#3B6D11', bg: '#EAF3DE', text: '#3B6D11', border: '#C0DD97', label: 'Success' },
+  partial: { dot: '#854F0B', bg: '#FAEEDA', text: '#854F0B', border: '#FAC775', label: 'Partial' },
+  failed: { dot: '#A32D2D', bg: '#FCEBEB', text: '#A32D2D', border: '#F7C1C1', label: 'Failed' },
 }
 
 function formatDate(iso: string): string {
@@ -19,6 +19,37 @@ function formatDate(iso: string): string {
 
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`
+}
+
+function StatusPill({ status }: { status: string }) {
+  const s = STATUS_META[status] ?? {
+    dot: '#888888',
+    bg: '#F1EFE8',
+    text: '#5F5E5A',
+    border: '#D3D1C7',
+    label: status,
+  }
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '5px',
+        background: s.bg,
+        color: s.text,
+        border: `0.5px solid ${s.border}`,
+        borderRadius: '20px',
+        padding: '2px 9px',
+        fontSize: '11px',
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
+      {s.label}
+    </span>
+  )
 }
 
 interface Props {
@@ -66,74 +97,92 @@ export function SyncLog({ refreshTrigger }: Props) {
 
   return (
     <div style={{ background: '#fff', border: '0.5px solid #E0DEF7', borderRadius: '12px', overflow: 'hidden' }}>
+      <div
+        className="hidden sm:grid"
+        style={{
+          gridTemplateColumns: 'minmax(80px, 1fr) 92px 76px 80px 60px 74px minmax(120px, 1fr)',
+          gap: '12px',
+          padding: '9px 16px',
+          borderBottom: '0.5px solid #E0DEF7',
+          background: '#FAFAFE',
+        }}
+      >
+        {['Source', 'Status', 'Attempted', 'Succeeded', 'Failed', 'Duration', 'Time'].map((h) => (
+          <span
+            key={h}
+            style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#7E7FA4',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {h}
+          </span>
+        ))}
+      </div>
+
       {logs.map((log, i) => {
-        const dotColor = STATUS_DOT[log.status] ?? '#888888'
         const isLast = i === logs.length - 1
 
         return (
           <div
             key={log.id}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
               padding: '11px 16px',
               borderBottom: isLast ? 'none' : '0.5px solid #F1EFE8',
             }}
           >
-            {/* Status dot */}
-            <span
+            <div className="sm:hidden" style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', textTransform: 'capitalize' }}>
+                  {log.source}
+                </span>
+                <StatusPill status={log.status} />
+              </div>
+              <div style={{ fontSize: '12px', color: '#534AB7', fontWeight: 500 }}>
+                {log.succeeded}/{log.attempted} synced
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#A32D2D' }}>{log.failed} failed</span>
+                <span style={{ fontSize: '11px', color: '#888888' }}>{formatDuration(log.durationMs)}</span>
+                <span style={{ fontSize: '11px', color: '#888888' }}>{formatDate(log.createdAt)}</span>
+              </div>
+            </div>
+
+            <div
+              className="hidden sm:grid"
               style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: dotColor,
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Source name */}
-            <span
-              style={{
-                width: '80px',
-                flexShrink: 0,
-                fontSize: '13px',
-                fontWeight: 500,
-                color: '#1a1a2e',
-                textTransform: 'capitalize',
-              }}
-            >
-              {log.source}
-            </span>
-
-            {/* Synced count */}
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#534AB7', minWidth: '60px' }}>
-              {log.succeeded} synced
-            </span>
-
-            {/* Error count (only if > 0) */}
-            {log.failed > 0 && (
-              <span style={{ fontSize: '12px', color: '#A32D2D' }}>{log.failed} failed</span>
-            )}
-
-            {/* Duration */}
-            <span
-              style={{
-                fontSize: '11px',
-                fontFamily: 'monospace',
-                color: '#888888',
-                background: '#F5F4FF',
-                padding: '1px 6px',
-                borderRadius: '4px',
+                gridTemplateColumns: 'minmax(80px, 1fr) 92px 76px 80px 60px 74px minmax(120px, 1fr)',
+                gap: '12px',
+                alignItems: 'center',
               }}
             >
-              {formatDuration(log.durationMs)}
-            </span>
-
-            {/* Timestamp — right-aligned */}
-            <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#888888', whiteSpace: 'nowrap' }}>
-              {formatDate(log.createdAt)}
-            </span>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e', textTransform: 'capitalize' }}>
+                {log.source}
+              </span>
+              <StatusPill status={log.status} />
+              <span style={{ fontSize: '13px', color: '#1a1a2e' }}>{log.attempted}</span>
+              <span style={{ fontSize: '13px', color: '#534AB7', fontWeight: 500 }}>{log.succeeded}</span>
+              <span style={{ fontSize: '13px', color: log.failed > 0 ? '#A32D2D' : '#888888' }}>{log.failed}</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                  color: '#888888',
+                  background: '#F5F4FF',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  width: 'fit-content',
+                }}
+              >
+                {formatDuration(log.durationMs)}
+              </span>
+              <span style={{ fontSize: '12px', color: '#888888', whiteSpace: 'nowrap' }}>
+                {formatDate(log.createdAt)}
+              </span>
+            </div>
           </div>
         )
       })}

@@ -49,7 +49,8 @@ highlevel-integration-platform/
         ├── api/client.ts             ← Typed fetch wrapper
         ├── hooks/                    ← useConnectors, useSyncLog
         └── components/               ← ConnectorCard, ConnectorList, MetricsStrip,
-                                          StatusBadge, SyncLog, ContactsModal, LoadingSkeleton
+                                          StatusBadge, SyncLog, ContactsModal, LeadsModal,
+                                          LeadRow, LoadingSkeleton
 ```
 
 ---
@@ -117,7 +118,9 @@ POST   /api/connectors/:source/connect
 DELETE /api/connectors/:source/disconnect
 GET    /api/connectors/:source/callback?code=   ← OAuth redirect handler
 GET    /api/contacts?source=&limit=&skip=
+GET    /api/leads?source=&limit=&skip=
 POST   /api/sync/:source                        body: { dryRun?: boolean }
+POST   /api/sync/:source/leads                  body: { dryRun?: boolean }
 GET    /api/sync/logs?source=&limit=
 ```
 
@@ -271,15 +274,12 @@ The assignment title is "AI-Native Integration Platform." Currently AI was used 
 | Model | Status | Notes |
 |---|---|---|
 | `UnifiedContact` | Implemented + synced | Google Contacts source |
-| `UnifiedLead` | Schema defined, Facebook connector produces it, **not exposed via API** | Need `/api/leads` route + `fetchLeads()` on connectors that support it |
+| `UnifiedLead` | Implemented + exposed | Available via `/api/leads` and `POST /api/sync/:source/leads` |
 | `UnifiedDeal` | Not implemented | Would map to HL Opportunities |
 | `UnifiedCompany` | Not implemented | Would map to HL account/company fields |
 | `UnifiedNote` | Not implemented | Activity/note syncing |
 
-**Leads gap specifically:** `FacebookConnector.mapToContact()` creates a `UnifiedLead` with `campaignId` and `adId`, but `fetchContacts()` returns `UnifiedContact[]` — the lead-specific fields are dropped at the return boundary. A proper implementation needs:
-1. `fetchLeads()` abstract method on connectors that source leads
-2. `/api/leads?source=` endpoint
-3. Lead metadata (`campaignId`, `adId`) passed to HL as tags or custom fields
+**Lead metadata status:** Lead records are exposed in the API/UI, including `leadSource`, `campaignId`, and `adId`. Sync endpoints support lead-specific runs via `/api/sync/:source/leads`.
 
 ### Infrastructure
 

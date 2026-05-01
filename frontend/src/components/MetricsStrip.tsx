@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ConnectorStatus } from '../types'
 import { useSyncLog } from '../hooks/useSyncLog'
 
@@ -35,19 +36,20 @@ interface Props {
 }
 
 export function MetricsStrip({ connectors, syncTrigger }: Props) {
-  const { logs } = useSyncLog(50)
+  const { logs, refetch } = useSyncLog(50)
 
   const activeCount = connectors.filter((c) => c.connected).length
   const totalSynced = logs.reduce((sum, l) => sum + l.succeeded, 0)
 
   const lastLog = logs[0]
-  const lastSync = lastLog ? relativeTime(lastLog.createdAt) : '—'
+  const lastSync = lastLog ? relativeTime(lastLog.createdAt) : '-'
 
-  // syncTrigger is consumed here to re-render after a sync (logs refresh via useSyncLog)
-  void syncTrigger
+  useEffect(() => {
+    if (syncTrigger > 0) void refetch()
+  }, [syncTrigger, refetch])
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <MetricCard label="Active connectors" value={`${activeCount} / ${connectors.length}`} />
       <MetricCard label="Total contacts synced" value={totalSynced} />
       <MetricCard label="Last sync" value={lastSync} />

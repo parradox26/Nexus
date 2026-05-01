@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-05-01
+
+### Fixed: UI alignment to wireframe spec (metrics refresh, sync log detail, mobile responsiveness)
+
+What changed:
+- Updated `frontend/src/components/MetricsStrip.tsx`:
+  - Metrics now refetch sync logs when `syncTrigger` changes, so "Total contacts synced" and "Last sync" update immediately after sync actions.
+  - Metrics layout is now responsive (`1` column on small screens, `3` on larger screens).
+- Updated `frontend/src/components/SyncLog.tsx`:
+  - Replaced compact dot-row-only presentation with a richer status table view on desktop (`Source`, `Status`, `Attempted`, `Succeeded`, `Failed`, `Duration`, `Time`).
+  - Added a dedicated mobile row layout for readability on narrow viewports.
+  - Added semantic status pills for success/partial/failed.
+- Updated `frontend/src/components/LeadsModal.tsx` and added `frontend/src/components/LeadRow.tsx`:
+  - Leads now render with explicit desktop and mobile layouts.
+  - Desktop keeps the 4-column structure; mobile stacks identity + metadata pills to prevent horizontal squeeze.
+- Added `docs/UI_SPECS_WIREFRAMES.md` as the canonical UI spec + low-fidelity wireframes for current implementation and future iteration.
+
+Why this was fixed:
+- The implemented UI had drifted from the intended wireframe behavior in three places: metric freshness, sync history detail level, and mobile behavior for dense tables/grids.
+- These updates make connector operations clearer, keep dashboard KPIs current after user actions, and preserve readability across desktop and mobile.
+
 ## 2026-04-30
 
 ### Fixed: Contacts modal card UI and readability

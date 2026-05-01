@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ConnectorSource, UnifiedLead } from '../types'
 import { api } from '../api/client'
+import { LeadRow } from './LeadRow'
 
 interface Props {
   source: ConnectorSource
@@ -20,25 +21,6 @@ function Spinner() {
   )
 }
 
-function MetaPill({ label, value }: { label: string; value: string }) {
-  return (
-    <span
-      style={{
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        padding: '2px 6px',
-        borderRadius: '4px',
-        background: '#F5F4FF',
-        border: '0.5px solid #E0DEF7',
-        color: '#534AB7',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {label}:{value}
-    </span>
-  )
-}
-
 export function LeadsModal({ source, onClose }: Props) {
   const [leads, setLeads] = useState<UnifiedLead[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,20 +33,6 @@ export function LeadsModal({ source, onClose }: Props) {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load leads'))
       .finally(() => setLoading(false))
   }, [source])
-
-  function getAvatarLabel(lead: UnifiedLead): string {
-    const first = lead.firstName.trim()
-    const last = lead.lastName.trim()
-    if (first && last) return `${first[0]}${last[0]}`.toUpperCase()
-    if (first) return first[0].toUpperCase()
-    if (lead.email) return lead.email[0].toUpperCase()
-    return '?'
-  }
-
-  function getDisplayName(lead: UnifiedLead): string {
-    const name = `${lead.firstName} ${lead.lastName}`.trim()
-    return name || lead.email.split('@')[0] || 'Unnamed lead'
-  }
 
   return (
     <div
@@ -161,8 +129,8 @@ export function LeadsModal({ source, onClose }: Props) {
         {/* Column headers */}
         {!loading && !error && leads.length > 0 && (
           <div
+            className="hidden sm:grid"
             style={{
-              display: 'grid',
               gridTemplateColumns: '1fr 140px 100px 100px',
               gap: '8px',
               padding: '8px 14px',
@@ -194,68 +162,7 @@ export function LeadsModal({ source, onClose }: Props) {
             </div>
           )}
 
-          {!loading && !error && leads.map((lead) => (
-            <div
-              key={lead.id}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 140px 100px 100px',
-                gap: '8px',
-                alignItems: 'center',
-                border: '0.5px solid #E0DEF7',
-                borderRadius: '10px',
-                padding: '10px 12px',
-                background: '#FFFFFF',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '9px',
-                    border: '0.5px solid #FAC775',
-                    background: '#FAEEDA',
-                    color: '#854F0B',
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {getAvatarLabel(lead)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {getDisplayName(lead)}
-                  </p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#6F7190', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {lead.email}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                {lead.leadSource
-                  ? <MetaPill label="src" value={lead.leadSource} />
-                  : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>—</span>}
-              </div>
-
-              <div>
-                {lead.campaignId
-                  ? <MetaPill label="camp" value={lead.campaignId} />
-                  : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>—</span>}
-              </div>
-
-              <div>
-                {lead.adId
-                  ? <MetaPill label="ad" value={lead.adId} />
-                  : <span style={{ fontSize: '11px', color: '#C0C0C0' }}>—</span>}
-              </div>
-            </div>
-          ))}
+          {!loading && !error && leads.map((lead) => <LeadRow key={lead.id} lead={lead} />)}
         </div>
       </div>
     </div>
