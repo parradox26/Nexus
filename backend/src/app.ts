@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import express from 'express'
+import path from 'path'
 import { connectorsRouter } from './routes/connectors.routes'
 import { contactsRouter } from './routes/contacts.routes'
 import { leadsRouter } from './routes/leads.routes'
@@ -42,6 +43,13 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use(errorMiddleware)
+
+// Serve built frontend — only active when dist/ exists (production/Railway)
+const frontendDist = path.join(__dirname, '../../frontend/dist')
+app.use(express.static(frontendDist))
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(frontendDist, 'index.html'))
+})
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10)
 app.listen(PORT, () => {

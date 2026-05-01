@@ -1,6 +1,8 @@
 import { ApiResponse, ConnectorSource, ConnectorStatus, SyncLog, SyncResult, UnifiedContact, UnifiedLead } from '../types'
 
-const BASE_URL = (import.meta as { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+// Empty string = relative URLs (production, co-hosted with Express).
+// Set VITE_API_BASE_URL in .env.local for local dev pointing to a separate backend.
+const BASE_URL = (import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? ''
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {

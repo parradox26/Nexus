@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node src/app.ts",
     "build": "tsc",
+    "build:all": "cd ../frontend && npm ci && npm run build && cd ../backend && npm ci && npx prisma generate && npm run build",
     "start": "node dist/app.js",
     "test": "jest",
     "test:unit": "jest tests/unit",
