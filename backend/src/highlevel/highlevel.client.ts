@@ -204,9 +204,9 @@ export class HighLevelClient {
     const body: Record<string, unknown> = {
       firstName: contact.firstName,
       lastName: contact.lastName,
-      email: contact.email,
       locationId: this.locationId,
     }
+    if (contact.email) body.email = contact.email
 
     const phone = this.normalizePhone(contact.phone)
     if (phone) body.phone = phone

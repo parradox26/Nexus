@@ -289,3 +289,4 @@ Missing unified models (not yet implemented):
 - **Real Facebook connector** — replace mock; requires Facebook App Review (2–4 weeks)
 - **User auth** — no auth on internal routes currently; needs JWT or session layer
 - **Two-way sync** — HL webhooks exist but require a public endpoint; currently push-only
+- **Marketplace install-triggered OAuth** — when a user installs the app from the HL Marketplace, HL sends an OAuth code to the Install URL at install time. The callback should detect `?install=1` and redirect to the app UI instead of returning the popup-close bridge page. This would connect the HL sub-account automatically at install, eliminating the manual "Connect HighLevel" step entirely.
