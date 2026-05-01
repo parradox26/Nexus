@@ -18,12 +18,14 @@ export class SyncEngine {
 
   async run(connector: BaseConnector, options: SyncOptions = {}): Promise<SyncResult> {
     const triggeredBy = options.triggeredBy ?? 'manual'
-    logger.info(`Starting sync for ${connector.source}`, { dryRun: options.dryRun, triggeredBy })
+    logger.info(`Starting contact sync for ${connector.source}`, { dryRun: options.dryRun, triggeredBy })
+    return connector.sync(this.hlClient, syncLogger, { dryRun: options.dryRun, triggeredBy })
+  }
 
-    return connector.sync(this.hlClient, syncLogger, {
-      dryRun: options.dryRun,
-      triggeredBy,
-    })
+  async runLeads(connector: BaseConnector, options: SyncOptions = {}): Promise<SyncResult> {
+    const triggeredBy = options.triggeredBy ?? 'manual'
+    logger.info(`Starting lead sync for ${connector.source}`, { dryRun: options.dryRun, triggeredBy })
+    return connector.syncLeads(this.hlClient, syncLogger, { dryRun: options.dryRun, triggeredBy })
   }
 
   async runAll(

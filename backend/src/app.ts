@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import { connectorsRouter } from './routes/connectors.routes'
 import { contactsRouter } from './routes/contacts.routes'
+import { leadsRouter } from './routes/leads.routes'
 import { syncRouter } from './routes/sync.routes'
 import { authRouter } from './routes/auth.routes'
 import { errorMiddleware } from './middleware/error.middleware'
@@ -27,6 +28,7 @@ app.use((_req, res, next) => {
 
 app.use('/api/connectors', connectorsRouter)
 app.use('/api/contacts', contactsRouter)
+app.use('/api/leads', leadsRouter)
 app.use('/api/sync', syncRouter)
 app.use('/api', authRouter)
 

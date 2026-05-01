@@ -21,6 +21,13 @@ export interface UnifiedContact {
   syncedAt?: string
 }
 
+export interface UnifiedLead extends UnifiedContact {
+  leadSource?: string
+  campaignId?: string
+  formId?: string
+  adId?: string
+}
+
 export interface SyncResult {
   connectorSource: ConnectorSource
   attempted: number

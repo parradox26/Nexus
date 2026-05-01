@@ -37,6 +37,33 @@ router.post('/:source', async (req: Request, res: Response): Promise<void> => {
   }
 })
 
+router.post('/:source/leads', async (req: Request, res: Response): Promise<void> => {
+  const source = strParam(req.params['source'])
+  const { dryRun } = req.body as { dryRun?: boolean }
+
+  if (!isValidSource(source)) {
+    res.status(400).json({ success: false, error: `Unknown connector: ${source}` })
+    return
+  }
+
+  const connector = getConnector(source)
+
+  if (!connector.isConnected) {
+    res.status(400).json({ success: false, error: `Connector ${source} is not connected` })
+    return
+  }
+
+  try {
+    const result = await syncEngine.runLeads(connector, { dryRun: dryRun ?? false })
+    res.json({ success: true, data: result })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err instanceof Error ? err.message : 'Lead sync failed',
+    })
+  }
+})
+
 router.get('/logs', async (req: Request, res: Response): Promise<void> => {
   const source = req.query['source']
   const limit = req.query['limit'] ?? '20'

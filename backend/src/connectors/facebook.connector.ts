@@ -105,7 +105,18 @@ export class FacebookConnector extends BaseConnector {
     return MOCK_LEADS.map((lead) => this.mapToContact(lead))
   }
 
+  async fetchLeads(_options?: FetchOptions): Promise<UnifiedLead[]> {
+    return MOCK_LEADS.map((lead) => this.mapToLead(lead))
+  }
+
   mapToContact(raw: unknown): UnifiedContact {
+    const lead = this.mapToLead(raw)
+    // Strip lead-only fields — return as plain UnifiedContact
+    const { campaignId: _c, formId: _f, adId: _a, leadSource: _ls, ...contact } = lead
+    return contact
+  }
+
+  mapToLead(raw: unknown): UnifiedLead {
     const lead = raw as FacebookLead
 
     const field = (name: string): string | undefined =>
@@ -116,7 +127,7 @@ export class FacebookConnector extends BaseConnector {
     const firstName = spaceIdx === -1 ? fullName : fullName.slice(0, spaceIdx)
     const lastName = spaceIdx === -1 ? '' : fullName.slice(spaceIdx + 1)
 
-    const contact: UnifiedLead = {
+    return {
       id: crypto.randomUUID(),
       source: this.source,
       sourceId: lead.id ?? '',
@@ -125,12 +136,11 @@ export class FacebookConnector extends BaseConnector {
       email: field('email') ?? '',
       phone: field('phone_number'),
       tags: ['facebook-lead'],
+      leadSource: 'facebook-ads',
       campaignId: field('campaign_id'),
       adId: field('ad_id'),
       raw: lead as unknown as Record<string, unknown>,
     }
-
-    return contact
   }
 
   async disconnect(): Promise<void> {

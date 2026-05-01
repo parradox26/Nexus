@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
-import { UnifiedContact } from '../schema'
+import { UnifiedContact, UnifiedLead } from '../schema'
 import { logger } from '../utils/logger'
 
 export interface HLContact {
@@ -68,6 +68,19 @@ export class HighLevelClient {
 
     const response = await this.postWithRetry<{ contact: HLContact }>('/contacts/', body)
     return response.contact
+  }
+
+  async createOrUpdateLead(lead: UnifiedLead): Promise<HLContact> {
+    // Build enriched tags from lead metadata before pushing to HL
+    const leadTags: string[] = [
+      ...(lead.tags ?? []),
+      lead.leadSource ? `source:${lead.leadSource}` : null,
+      lead.campaignId ? `campaign:${lead.campaignId}` : null,
+      lead.adId ? `ad:${lead.adId}` : null,
+      lead.formId ? `form:${lead.formId}` : null,
+    ].filter((t): t is string => t !== null)
+
+    return this.createOrUpdateContact({ ...lead, tags: leadTags })
   }
 
   async getContacts(limit = 20, skip = 0): Promise<HLContact[]> {

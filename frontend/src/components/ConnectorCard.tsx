@@ -3,6 +3,9 @@ import { ConnectorSource, ConnectorStatus, SyncResult } from '../types'
 import { api } from '../api/client'
 import { StatusBadge } from './StatusBadge'
 import { ContactsModal } from './ContactsModal'
+import { LeadsModal } from './LeadsModal'
+
+const LEADS_SOURCES: ConnectorSource[] = ['facebook']
 
 function ConnectedIcon() {
   return (
@@ -185,6 +188,7 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
   const [syncedCount, setSyncedCount] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showContacts, setShowContacts] = useState(false)
+  const [showLeads, setShowLeads] = useState(false)
 
   const isMock = MOCK_SOURCES.includes(connector.source)
   const iconState: IconState = error
@@ -393,6 +397,11 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
               <button onClick={() => setShowContacts(true)} style={btnSecondary}>
                 View contacts
               </button>
+              {LEADS_SOURCES.includes(connector.source) && (
+                <button onClick={() => setShowLeads(true)} style={btnSecondary}>
+                  View leads
+                </button>
+              )}
               <button onClick={() => void handleDisconnect()} disabled={disconnecting} style={btnDanger(disconnecting)}>
                 Disconnect
               </button>
@@ -403,6 +412,9 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
 
       {showContacts && (
         <ContactsModal source={connector.source} onClose={() => setShowContacts(false)} />
+      )}
+      {showLeads && (
+        <LeadsModal source={connector.source} onClose={() => setShowLeads(false)} />
       )}
     </>
   )

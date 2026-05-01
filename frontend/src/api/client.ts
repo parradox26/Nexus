@@ -1,4 +1,4 @@
-import { ApiResponse, ConnectorSource, ConnectorStatus, SyncLog, SyncResult, UnifiedContact } from '../types'
+import { ApiResponse, ConnectorSource, ConnectorStatus, SyncLog, SyncResult, UnifiedContact, UnifiedLead } from '../types'
 
 const BASE_URL = (import.meta as { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL ?? 'http://localhost:3000'
 
@@ -34,9 +34,20 @@ export const api = {
       request(`/api/contacts?source=${source}&limit=${limit}&skip=${skip}`),
   },
 
+  leads: {
+    list: (source: ConnectorSource, limit = 20, skip = 0): Promise<{ leads: UnifiedLead[]; total: number }> =>
+      request(`/api/leads?source=${source}&limit=${limit}&skip=${skip}`),
+  },
+
   sync: {
     run: (source: ConnectorSource, dryRun = false): Promise<SyncResult> =>
       request(`/api/sync/${source}`, {
+        method: 'POST',
+        body: JSON.stringify({ dryRun }),
+      }),
+
+    runLeads: (source: ConnectorSource, dryRun = false): Promise<SyncResult> =>
+      request(`/api/sync/${source}/leads`, {
         method: 'POST',
         body: JSON.stringify({ dryRun }),
       }),
