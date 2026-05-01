@@ -107,8 +107,13 @@ router.post('/connect', (_req: Request, res: Response): void => {
 router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   const error = req.query['error']
   const code = req.query['code']
+  const isInstall = req.query['install'] === '1'
 
   if (typeof error === 'string' && error) {
+    if (isInstall) {
+      res.redirect(`/?install_error=${encodeURIComponent(error)}`)
+      return
+    }
     respondOAuth(
       req,
       res,
@@ -119,15 +124,14 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   }
 
   if (typeof code !== 'string' || !code) {
+    if (isInstall) {
+      res.redirect('/?install_error=missing_code')
+      return
+    }
     respondOAuth(
       req,
       res,
-      {
-        type: OAUTH_MESSAGE_TYPE,
-        source: 'highlevel',
-        success: false,
-        error: 'Missing OAuth code',
-      },
+      { type: OAUTH_MESSAGE_TYPE, source: 'highlevel', success: false, error: 'Missing OAuth code' },
       400
     )
     return
@@ -135,6 +139,11 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
 
   try {
     const { locationId } = await HighLevelClient.exchangeCode(code)
+    if (isInstall) {
+      // Marketplace install flow: token stored, redirect into the app scoped to this location
+      res.redirect(`/?locationId=${encodeURIComponent(locationId)}`)
+      return
+    }
     respondOAuth(
       req,
       res,
@@ -142,6 +151,11 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
       200
     )
   } catch (err) {
+    if (isInstall) {
+      const msg = err instanceof Error ? err.message : 'Authentication failed'
+      res.redirect(`/?install_error=${encodeURIComponent(msg)}`)
+      return
+    }
     respondOAuth(
       req,
       res,

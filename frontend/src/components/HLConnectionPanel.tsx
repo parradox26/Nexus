@@ -339,25 +339,6 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embedd
                 ))}
               </div>
 
-              {!embeddedLocationId && (
-                <button
-                  onClick={() => void handleConnect()}
-                  disabled={connecting}
-                  style={{
-                    background: '#fff',
-                    color: '#534AB7',
-                    border: '0.5px solid #E0DEF7',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    cursor: connecting ? 'not-allowed' : 'pointer',
-                    width: 'fit-content',
-                  }}
-                >
-                  {connecting ? 'Connecting...' : 'Add another location'}
-                </button>
-              )}
             </>
           )}
         </>
