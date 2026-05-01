@@ -252,6 +252,47 @@ neutral:   bg #F1EFE8  text #5F5E5A  border #D3D1C7
 
 ---
 
+## Future Enhancements
+
+### AI-Native Features (the platform is not yet AI-native at runtime)
+
+The assignment title is "AI-Native Integration Platform." Currently AI was used to *build* the platform but is not used at *runtime*. The following features would make it genuinely AI-native:
+
+| Feature | Description | Entry point |
+|---|---|---|
+| **AI field mapper** | Send any raw API response to Claude → receive a normalized `UnifiedContact` JSON. Eliminates hardcoded `mapToContact()` per connector. New sources work without writing mapping code. | Replace `mapToContact()` in `BaseConnector` with an LLM call for unknown connectors |
+| **Semantic deduplication** | Use text embeddings to detect fuzzy duplicates — "R. Sharma / rahul@gmail.com" matches "Rahul Sharma / rahul@gmail.com". Current detection is exact string match on email only. | Pre-sync step in `sync()` before pushing to HL |
+| **Auto-connector scaffolding** | User pastes a sample API response or API docs URL → Claude generates the full connector class (auth, fetch, map). | New `/api/connectors/scaffold` endpoint |
+| **Natural language sync filters** | Sync rule expressed in plain English: "Only sync leads from paid campaigns" → LLM converts to a runtime filter function applied before push. | Filter step in `SyncEngine.run()` |
+| **AI conflict resolution** | Two sources have same contact with conflicting fields → Claude picks the more recent/valid value with a reasoning trace. | Merge step during normalization |
+
+### Data Model Gaps
+
+| Model | Status | Notes |
+|---|---|---|
+| `UnifiedContact` | Implemented + synced | Google Contacts source |
+| `UnifiedLead` | Schema defined, Facebook connector produces it, **not exposed via API** | Need `/api/leads` route + `fetchLeads()` on connectors that support it |
+| `UnifiedDeal` | Not implemented | Would map to HL Opportunities |
+| `UnifiedCompany` | Not implemented | Would map to HL account/company fields |
+| `UnifiedNote` | Not implemented | Activity/note syncing |
+
+**Leads gap specifically:** `FacebookConnector.mapToContact()` creates a `UnifiedLead` with `campaignId` and `adId`, but `fetchContacts()` returns `UnifiedContact[]` — the lead-specific fields are dropped at the return boundary. A proper implementation needs:
+1. `fetchLeads()` abstract method on connectors that source leads
+2. `/api/leads?source=` endpoint
+3. Lead metadata (`campaignId`, `adId`) passed to HL as tags or custom fields
+
+### Infrastructure
+
+| Enhancement | Description |
+|---|---|
+| Scheduled sync | Cron-based background sync via `node-cron` or BullMQ. Currently manual-only. |
+| Webhook ingestion | HL pushes events → platform reacts. Removes polling entirely. |
+| Multi-tenant | One deployment serves multiple HL locations with isolated token stores. |
+| Real Facebook connector | Replace mock with live Graph API. Requires Facebook App Review (2–4 weeks). |
+| User authentication | Currently no auth on internal routes. Needs session or JWT layer. |
+
+---
+
 ## Known Sharp Edges
 
 | Issue | Root cause | Fix applied |

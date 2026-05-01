@@ -1,6 +1,17 @@
-# HighLevel Integration Platform
+# Nexus — HighLevel Integration Platform
 
 A connector abstraction and normalization layer that connects third-party apps (Google Contacts, Facebook Lead Ads) to HighLevel CRM. This is **not** a workflow builder — think Merge.dev, not Zapier.
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/PRD.md](docs/PRD.md) | Product Requirements Document — problem statement, schema definitions, API design, success metrics |
+| [docs/AI_SDLC.md](docs/AI_SDLC.md) | AI-First SDLC — how AI was used at every stage, exact prompts, orchestration strategy, trade-offs |
+| [AGENTS.md](AGENTS.md) | Universal agent context — paste into any AI model to onboard it to this codebase |
+| [CLAUDE.md](CLAUDE.md) | Claude Code context — auto-loaded, critical rules and sharp edges |
 
 ---
 

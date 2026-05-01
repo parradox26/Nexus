@@ -220,3 +220,53 @@ npm test               # 31 tests — unit + integration
 6. Add brand icon and meta to `CONNECTOR_META` in `frontend/src/components/ConnectorCard.tsx`
 
 Do **not** add sync logic to the connector — `sync()` is inherited from `BaseConnector`.
+
+---
+
+## Future Enhancements
+
+### AI-Native Features (not yet implemented at runtime)
+
+The platform is not yet AI-native at runtime — AI was used to build it, not used by it. These are the enhancements that would fulfill the "AI-Native Integration Platform" title:
+
+| Feature | What to build | Where |
+|---|---|---|
+| **AI field mapper** | LLM maps any raw API response → `UnifiedContact`. Eliminates hardcoded `mapToContact()` for new sources. | New `ai.mapper.ts` util, called as fallback in `BaseConnector` |
+| **Semantic deduplication** | Embeddings-based fuzzy match before HL push. Current logic is exact email match only. | Pre-sync step in `BaseConnector.sync()` |
+| **Auto-connector scaffolding** | User pastes sample API response → Claude generates full connector class | New `POST /api/connectors/scaffold` route |
+| **Natural language sync filters** | Plain English rule → runtime filter function via LLM | Filter step in `SyncEngine.run()` |
+| **AI conflict resolution** | Conflicting field values across sources → LLM picks canonical value with reasoning trace | Merge step during normalization |
+
+### Data Model Gaps
+
+`UnifiedLead` — implemented and exposed via `/api/leads` and `POST /api/sync/:source/leads`. Lead metadata synced to HL as prefixed tags (`campaign:`, `ad:`, `source:`).
+
+Missing unified models (not yet implemented):
+
+| Model | HL Endpoint | Source candidates | Priority |
+|---|---|---|---|
+| `UnifiedDeal` | `/opportunities/` | Stripe payments, CRM exports | High — Stripe customers map cleanly to pipeline deals with value + stage |
+| `UnifiedNote` | `/contacts/{id}/notes/` | CRM migrations, support tickets | Medium — attach sync provenance notes per contact |
+| `UnifiedTask` | `/contacts/{id}/tasks/` | Asana, Notion, Linear | Medium |
+| `UnifiedAppointment` | `/calendars/events/` | Google Calendar, Calendly | Medium — Google connector already OAuth'd |
+| `UnifiedMessage` | `/conversations/messages/` | SMS history, email threads | Low |
+| `UnifiedInvoice` | `/invoices/` | Stripe, QuickBooks | Low |
+| `UnifiedCompany` | (via contact `companyName` field) | HubSpot, Salesforce exports | Low |
+
+**Highest value next step**: `UnifiedDeal` + Stripe connector — Stripe customers have monetary value, plan, and status that map directly to HL opportunity stage and deal value. No mock needed; Stripe's test mode covers dev.
+
+### HL API Notes for New Entity Types
+
+- **Opportunities** require `pipelineId` and `pipelineStageId` — both must be fetched from `/opportunities/pipelines/` first and stored per location
+- **Notes/Tasks** are sub-resources scoped to a contact ID — contact must exist in HL before note/task can be created
+- **Appointments** require `calendarId` — fetch from `/calendars/` first
+- **Messages** require an existing conversation — use `/conversations/search/` to find or create one by contact
+- All entity pushes follow the same pattern as contacts: normalize → push → handle 400/429/5xx in `postWithRetry`
+
+### Infrastructure
+
+- **Scheduled sync** — `node-cron` or BullMQ for background auto-sync (currently manual only)
+- **Webhook ingestion** — HL pushes events → platform reacts in real time
+- **Real Facebook connector** — replace mock; requires Facebook App Review (2–4 weeks)
+- **User auth** — no auth on internal routes currently; needs JWT or session layer
+- **Two-way sync** — HL webhooks exist but require a public endpoint; currently push-only
