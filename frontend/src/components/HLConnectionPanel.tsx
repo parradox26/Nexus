@@ -108,9 +108,10 @@ function waitForHighLevelOAuth(
 interface Props {
   selectedLocationId: string | null
   onSelectLocation: (locationId: string | null) => void
+  embeddedLocationId?: string | null
 }
 
-export function HLConnectionPanel({ selectedLocationId, onSelectLocation }: Props) {
+export function HLConnectionPanel({ selectedLocationId, onSelectLocation, embeddedLocationId }: Props) {
   const [locations, setLocations] = useState<HLLocationStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
@@ -147,11 +148,13 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation }: Prop
     }
   }, [locations, onSelectLocation, selectedLocationId])
 
-  const connected = locations.length > 0
-  const sortedLocations = useMemo(
-    () => [...locations].sort((a, b) => a.locationId.localeCompare(b.locationId)),
-    [locations]
-  )
+  const visibleLocations = useMemo(() => {
+    const sorted = [...locations].sort((a, b) => a.locationId.localeCompare(b.locationId))
+    if (embeddedLocationId) return sorted.filter((l) => l.locationId === embeddedLocationId)
+    return sorted
+  }, [locations, embeddedLocationId])
+
+  const connected = visibleLocations.length > 0
 
   async function handleConnect() {
     setConnecting(true)
@@ -269,7 +272,7 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation }: Prop
                   color: '#1A1A2E',
                 }}
               >
-                {sortedLocations.map((loc) => (
+                {visibleLocations.map((loc) => (
                   <option key={loc.locationId} value={loc.locationId}>
                     {loc.locationId}
                   </option>
@@ -277,7 +280,7 @@ export function HLConnectionPanel({ selectedLocationId, onSelectLocation }: Prop
               </select>
 
               <div style={{ display: 'grid', gap: '8px' }}>
-                {sortedLocations.map((loc) => (
+                {visibleLocations.map((loc) => (
                   <div
                     key={loc.locationId}
                     style={{

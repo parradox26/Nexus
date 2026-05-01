@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useConnectors } from './hooks/useConnectors'
 import { ConnectorList } from './components/ConnectorList'
 import { MetricsStrip } from './components/MetricsStrip'
@@ -40,9 +40,21 @@ function SectionHeader({
 export function App() {
   const [syncTrigger, setSyncTrigger] = useState(0)
   const [syncingAll, setSyncingAll] = useState(false)
+
+  // When embedded via HL Custom Page, HL injects ?locationId={{location.id}} into the URL.
+  // We use this to scope the UI to that sub-account only.
+  const embeddedLocationId = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('locationId')
+  }, [])
+
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
-    return window.localStorage.getItem('nexus:hl_location_id')
+    // If running embedded, the URL param always wins over localStorage
+    return (
+      new URLSearchParams(window.location.search).get('locationId') ??
+      window.localStorage.getItem('nexus:hl_location_id')
+    )
   })
 
   const { connectors, loading, error, refetch } = useConnectors()
@@ -150,21 +162,6 @@ export function App() {
               {syncingAll ? <Spinner size={14} color="#FFFFFF" /> : <Icon.Sync size={14} />}
               {syncingAll ? 'Syncing all...' : 'Sync all'}
             </button>
-            <button
-              className="nx-btn nx-header-btn"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '8px 12px', borderRadius: 8,
-                background: '#FFFFFF', border: 'none',
-                color: '#534AB7',
-                fontSize: 13, fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              <Icon.Plus size={14} />
-              Add connector
-            </button>
           </div>
         </header>
 
@@ -177,6 +174,7 @@ export function App() {
           <HLConnectionPanel
             selectedLocationId={selectedLocationId}
             onSelectLocation={setSelectedLocationId}
+            embeddedLocationId={embeddedLocationId}
           />
         </div>
 
