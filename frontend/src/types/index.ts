@@ -55,3 +55,8 @@ export interface ApiResponse<T> {
   data?: T
   error?: string
 }
+
+export interface HLLocationStatus {
+  locationId: string
+  tokenExpiresAt?: string
+}

@@ -9,9 +9,17 @@ interface Props {
   error: string | null
   onRefresh: () => void
   onSyncComplete: () => void
+  selectedLocationId: string | null
 }
 
-export function ConnectorList({ connectors, loading, error, onRefresh, onSyncComplete }: Props) {
+export function ConnectorList({
+  connectors,
+  loading,
+  error,
+  onRefresh,
+  onSyncComplete,
+  selectedLocationId,
+}: Props) {
   const [isTwoColumn, setIsTwoColumn] = useState(() => {
     if (typeof window === 'undefined') return true
     return window.matchMedia('(min-width: 760px)').matches
@@ -99,6 +107,7 @@ export function ConnectorList({ connectors, loading, error, onRefresh, onSyncCom
           connector={connector}
           onRefresh={onRefresh}
           onSyncComplete={onSyncComplete}
+          selectedLocationId={selectedLocationId}
         />
       ))}
     </div>

@@ -6,6 +6,7 @@ import { contactsRouter } from './routes/contacts.routes'
 import { leadsRouter } from './routes/leads.routes'
 import { syncRouter } from './routes/sync.routes'
 import { authRouter } from './routes/auth.routes'
+import { highlevelRouter } from './routes/highlevel.routes'
 import { errorMiddleware } from './middleware/error.middleware'
 import { getAllConnectors } from './connectors'
 import { logger } from './utils/logger'
@@ -27,6 +28,7 @@ app.use((_req, res, next) => {
   next()
 })
 
+app.use('/api/hl', highlevelRouter)
 app.use('/api/connectors', connectorsRouter)
 app.use('/api/contacts', contactsRouter)
 app.use('/api/leads', leadsRouter)

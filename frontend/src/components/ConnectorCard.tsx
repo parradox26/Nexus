@@ -178,9 +178,15 @@ interface Props {
   connector: ConnectorStatus
   onRefresh: () => void
   onSyncComplete: () => void
+  selectedLocationId: string | null
 }
 
-export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
+export function ConnectorCard({
+  connector,
+  onRefresh,
+  onSyncComplete,
+  selectedLocationId,
+}: Props) {
   const [syncing, setSyncing] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -230,7 +236,7 @@ export function ConnectorCard({ connector, onRefresh, onSyncComplete }: Props) {
     setSyncResult(null)
     setError(null)
     try {
-      const result = await api.sync.run(connector.source)
+      const result = await api.sync.run(connector.source, false, selectedLocationId ?? undefined)
       setSyncResult(result)
       setSyncedCount(result.succeeded)
       onSyncComplete()

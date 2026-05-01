@@ -1,4 +1,13 @@
-import { ApiResponse, ConnectorSource, ConnectorStatus, SyncLog, SyncResult, UnifiedContact, UnifiedLead } from '../types'
+import {
+  ApiResponse,
+  ConnectorSource,
+  ConnectorStatus,
+  HLLocationStatus,
+  SyncLog,
+  SyncResult,
+  UnifiedContact,
+  UnifiedLead,
+} from '../types'
 
 // Empty string = relative URLs (production, co-hosted with Express).
 // Set VITE_API_BASE_URL in .env.local for local dev pointing to a separate backend.
@@ -42,19 +51,32 @@ export const api = {
   },
 
   sync: {
-    run: (source: ConnectorSource, dryRun = false): Promise<SyncResult> =>
+    run: (source: ConnectorSource, dryRun = false, locationId?: string): Promise<SyncResult> =>
       request(`/api/sync/${source}`, {
         method: 'POST',
-        body: JSON.stringify({ dryRun }),
+        body: JSON.stringify({ dryRun, locationId }),
       }),
 
-    runLeads: (source: ConnectorSource, dryRun = false): Promise<SyncResult> =>
+    runLeads: (source: ConnectorSource, dryRun = false, locationId?: string): Promise<SyncResult> =>
       request(`/api/sync/${source}/leads`, {
         method: 'POST',
-        body: JSON.stringify({ dryRun }),
+        body: JSON.stringify({ dryRun, locationId }),
       }),
 
     logs: (source?: ConnectorSource, limit = 10): Promise<{ logs: SyncLog[] }> =>
       request(`/api/sync/logs?${source ? `source=${source}&` : ''}limit=${limit}`),
+  },
+
+  highlevel: {
+    connect: (): Promise<{ authUrl: string }> =>
+      request('/api/hl/connect', { method: 'POST' }),
+
+    locations: (): Promise<{ connected: boolean; locations: HLLocationStatus[] }> =>
+      request('/api/hl/locations'),
+
+    disconnect: (locationId: string): Promise<{ disconnected: boolean; locationId: string }> =>
+      request(`/api/hl/locations/${encodeURIComponent(locationId)}`, {
+        method: 'DELETE',
+      }),
   },
 }

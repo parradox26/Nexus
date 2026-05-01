@@ -12,7 +12,7 @@ function strParam(val: string | string[] | undefined): string {
 
 router.post('/:source', async (req: Request, res: Response): Promise<void> => {
   const source = strParam(req.params['source'])
-  const { dryRun } = req.body as { dryRun?: boolean }
+  const { dryRun, locationId } = req.body as { dryRun?: boolean; locationId?: string }
 
   if (!isValidSource(source)) {
     res.status(400).json({ success: false, error: `Unknown connector: ${source}` })
@@ -27,7 +27,10 @@ router.post('/:source', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const result = await syncEngine.run(connector, { dryRun: dryRun ?? false })
+    const result = await syncEngine.run(connector, {
+      dryRun: dryRun ?? false,
+      locationId,
+    })
     res.json({ success: true, data: result })
   } catch (err) {
     res.status(500).json({
@@ -39,7 +42,7 @@ router.post('/:source', async (req: Request, res: Response): Promise<void> => {
 
 router.post('/:source/leads', async (req: Request, res: Response): Promise<void> => {
   const source = strParam(req.params['source'])
-  const { dryRun } = req.body as { dryRun?: boolean }
+  const { dryRun, locationId } = req.body as { dryRun?: boolean; locationId?: string }
 
   if (!isValidSource(source)) {
     res.status(400).json({ success: false, error: `Unknown connector: ${source}` })
@@ -54,7 +57,10 @@ router.post('/:source/leads', async (req: Request, res: Response): Promise<void>
   }
 
   try {
-    const result = await syncEngine.runLeads(connector, { dryRun: dryRun ?? false })
+    const result = await syncEngine.runLeads(connector, {
+      dryRun: dryRun ?? false,
+      locationId,
+    })
     res.json({ success: true, data: result })
   } catch (err) {
     res.status(500).json({

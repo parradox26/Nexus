@@ -1,12 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useConnectors } from './hooks/useConnectors'
 import { ConnectorList } from './components/ConnectorList'
 import { MetricsStrip } from './components/MetricsStrip'
 import { SyncLog } from './components/SyncLog'
+import { HLConnectionPanel } from './components/HLConnectionPanel'
 
 export function App() {
   const [syncTrigger, setSyncTrigger] = useState(0)
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return window.localStorage.getItem('nexus:hl_location_id')
+  })
   const { connectors, loading, error, refetch } = useConnectors()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (selectedLocationId) {
+      window.localStorage.setItem('nexus:hl_location_id', selectedLocationId)
+      return
+    }
+    window.localStorage.removeItem('nexus:hl_location_id')
+  }, [selectedLocationId])
 
   const activeCount = connectors.filter((c) => c.connected).length
 
@@ -60,6 +74,17 @@ export function App() {
         {/* Metrics strip */}
         <MetricsStrip connectors={connectors} syncTrigger={syncTrigger} />
 
+        {/* HighLevel destination */}
+        <section>
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.05em] text-[#888888]">
+            Destination
+          </p>
+          <HLConnectionPanel
+            selectedLocationId={selectedLocationId}
+            onSelectLocation={setSelectedLocationId}
+          />
+        </section>
+
         {/* Connectors */}
         <section>
           <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.05em] text-[#888888]">
@@ -71,6 +96,7 @@ export function App() {
             error={error}
             onRefresh={() => void refetch()}
             onSyncComplete={() => setSyncTrigger((n) => n + 1)}
+            selectedLocationId={selectedLocationId}
           />
         </section>
 
