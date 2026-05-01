@@ -46,24 +46,30 @@ function popupPayloadHtml(payload: {
     (function () {
       const payload = ${safePayload};
       const payloadString = JSON.stringify(payload);
-      try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage(payload, '*');
-        }
-      } catch (_err) {}
+      const isPopup = !!(window.opener && !window.opener.closed);
+
+      if (!isPopup) {
+        // Marketplace installation flow — full-page redirect, no opener
+        setTimeout(function () {
+          if (payload.success && payload.locationId) {
+            window.location.href = '/?locationId=' + encodeURIComponent(payload.locationId);
+          } else {
+            window.location.href = '/';
+          }
+        }, payload.success ? 800 : 1500);
+        return;
+      }
+
+      // Manual connect popup flow — postMessage then close
+      try { window.opener.postMessage(payload, '*'); } catch (_err) {}
       try {
         if (window.parent && window.parent !== window) {
           window.parent.postMessage(payload, '*');
         }
       } catch (_err) {}
-      try {
-        localStorage.setItem('nexus:oauth_result', payloadString);
-      } catch (_err) {}
+      try { localStorage.setItem('nexus:oauth_result', payloadString); } catch (_err) {}
 
-      function attemptClose() {
-        try { window.close(); } catch (_err) {}
-      }
-
+      function attemptClose() { try { window.close(); } catch (_err) {} }
       setTimeout(attemptClose, payload.success ? 150 : 1200);
       setTimeout(attemptClose, payload.success ? 700 : 1900);
     })();
@@ -107,13 +113,8 @@ router.post('/connect', (_req: Request, res: Response): void => {
 router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   const error = req.query['error']
   const code = req.query['code']
-  const isInstall = req.query['install'] === '1'
 
   if (typeof error === 'string' && error) {
-    if (isInstall) {
-      res.redirect(`/?install_error=${encodeURIComponent(error)}`)
-      return
-    }
     respondOAuth(
       req,
       res,
@@ -124,10 +125,6 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   }
 
   if (typeof code !== 'string' || !code) {
-    if (isInstall) {
-      res.redirect('/?install_error=missing_code')
-      return
-    }
     respondOAuth(
       req,
       res,
@@ -139,11 +136,6 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
 
   try {
     const { locationId } = await HighLevelClient.exchangeCode(code)
-    if (isInstall) {
-      // Marketplace install flow: token stored, redirect into the app scoped to this location
-      res.redirect(`/?locationId=${encodeURIComponent(locationId)}`)
-      return
-    }
     respondOAuth(
       req,
       res,
@@ -151,11 +143,6 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
       200
     )
   } catch (err) {
-    if (isInstall) {
-      const msg = err instanceof Error ? err.message : 'Authentication failed'
-      res.redirect(`/?install_error=${encodeURIComponent(msg)}`)
-      return
-    }
     respondOAuth(
       req,
       res,
