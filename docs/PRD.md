@@ -42,7 +42,6 @@ It is **not** a workflow builder. It does not route events or trigger automation
 - Workflow automation or event routing (not Zapier)
 - Real-time webhooks (future scope)
 - Two-way sync (HighLevel → external app)
-- Multi-tenant / multi-workspace support (single location scope)
 - User authentication (internal platform, API key protected)
 
 ---
@@ -74,7 +73,7 @@ It is **not** a workflow builder. It does not route events or trigger automation
            │                                    │
 ┌──────────▼──────────┐             ┌───────────▼────────────┐
 │  ConnectorRegistry  │             │   HighLevelClient      │
-│  (Map of sources)   │             │  v2 API, PIT auth      │
+│  (Map of sources)   │             │  v2 API, OAuth 2.0     │
 │  ┌───────────────┐  │             │  normalizePhone()      │
 │  │GoogleConnector│  │             │  DuplicateContactError │
 │  └───────────────┘  │             └───────────┬────────────┘

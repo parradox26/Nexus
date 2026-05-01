@@ -146,7 +146,7 @@ partial failures, and concurrent syncs."
 | Google People API | Real | Calls live API with real token |
 | Facebook OAuth | Mocked | App Review takes 2-4 weeks |
 | Facebook Lead Ads API | Mocked | Requires approved app + webhook subscription |
-| HighLevel API | Real (config required) | Needs `HL_API_KEY` in env |
+| HighLevel OAuth | Real | App-level OAuth 2.0, multi-location, token auto-refresh |
 | Token encryption | Real | AES-256-GCM via Node crypto |
 | Prisma + PostgreSQL | Real (config required) | Needs `DATABASE_URL` |
 
@@ -156,9 +156,9 @@ partial failures, and concurrent syncs."
 
 - No webhook support for real-time sync (Facebook Lead Ads webhooks require verified app)
 - No scheduled/background sync (would need a job runner like BullMQ or pg-cron)
-- HighLevel API v1 used — v2 (OAuth-based) exists but requires different auth setup
 - No user auth — internal API key is a single shared secret
 - Facebook connector is fully mocked; production requires Facebook App Review
+- Contacts without an email address are still attempted (HL accepts null email but rejects empty string — omitted from body)
 
 ---
 
@@ -209,19 +209,15 @@ Visit http://localhost:5173 to see the UI.
 
 ## Embedding in HighLevel
 
+Nexus runs inside HighLevel as a **Custom Page** (iframe) — not Custom JS. This gives it a dedicated sidebar entry per sub-account.
+
 ```bash
-# 1. Build frontend bundle
-cd frontend
-VITE_API_BASE_URL=https://your-app.railway.app npm run build
-# Output: dist/index.js and dist/index.css
+# 1. In HL Marketplace app settings → App Modules → Custom Page
+#    Set URL: https://your-app.railway.app?locationId={{location.id}}
+#    Placement: Sub-account navigation (left sidebar)
 
-# 2. Host dist/index.js on a CDN or serve from backend /public
-
-# 3. In HighLevel:
-#    Settings → Custom JS/CSS
-#    Add: <script src="https://your-cdn/index.js"></script>
-#    Add: <link rel="stylesheet" href="https://your-cdn/index.css">
-
-# 4. The React app mounts to <div id="root">
-#    Add this div in your HighLevel custom HTML
+# 2. The app auto-scopes to the current sub-account via ?locationId
+#    window.opener detection handles install vs manual connect flows
 ```
+
+The React app mounts to `#nexus-app` (injected by the Custom Page iframe) and falls back to `#root` for local dev.
