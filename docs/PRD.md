@@ -58,41 +58,71 @@ It is **not** a workflow builder. It does not route events or trigger automation
 
 ## 5. System Architecture
 
+![Nexus Architecture](architecture.svg)
+
+<details><summary>Mermaid source</summary>
+
+```mermaid
+flowchart TD
+    subgraph FE["HighLevel Custom Page (iframe)"]
+        direction LR
+        CC["ConnectorCard"]
+        CL["ConnectorList"]
+        MS["MetricsStrip"]
+        SLG["SyncLog"]
+    end
+
+    subgraph BE["Express Backend (Node/TS)"]
+        direction LR
+        R1["/api/connectors"]
+        R2["/api/contacts · /api/leads"]
+        R3["/api/sync"]
+        R4["/api/hl  ·  /api/health"]
+    end
+
+    subgraph REG["ConnectorRegistry  —  Map of sources"]
+        direction TB
+        BC["BaseConnector (abstract)\nsync() — connector-agnostic, never throws"]
+        GC["GoogleConnector\nReal OAuth2 · Google People API"]
+        FB["FacebookConnector\nDocumented mock · 5 hardcoded leads"]
+        BC --> GC
+        BC --> FB
+    end
+
+    subgraph HLC["HighLevelClient"]
+        direction TB
+        HLA["createOrUpdateContact()"]
+        HLB["getContacts()"]
+        HLC2["normalizePhone()  →  E.164"]
+        DCE["DuplicateContactError  →  warning not failure"]
+    end
+
+    subgraph ENG["Sync Layer"]
+        direction LR
+        SE["SyncEngine\nreturns SyncResult"]
+        SL["SyncLogger\nwrites Prisma SyncLog rows"]
+    end
+
+    subgraph DB["PostgreSQL — Supabase"]
+        direction LR
+        CT["ConnectorToken\nAES-256-GCM encrypted"]
+        SLT["SyncLog\nstatus · counts · errors · duration"]
+    end
+
+    HLCRM["HighLevel CRM\nservices.leadconnectorhq.com  ·  API v2\nOAuth 2.0  ·  multi-location"]
+
+    FE -->|"REST / JSON"| BE
+    BE --> REG
+    BE --> HLC
+    REG --> ENG
+    ENG -->|"push normalized contacts"| HLC
+    ENG -->|"write log row"| DB
+    HLC --> HLCRM
+    REG -->|"store encrypted tokens"| DB
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                   HighLevel Custom JS Embed                  │
-│   ┌────────────┐  ┌──────────────┐  ┌───────────────────┐   │
-│   │ConnectorCard│  │ MetricsStrip │  │     SyncLog       │   │
-│   └────────────┘  └──────────────┘  └───────────────────┘   │
-└──────────────────────────┬───────────────────────────────────┘
-                           │ REST/JSON
-┌──────────────────────────▼───────────────────────────────────┐
-│                    Express Backend (Node/TS)                  │
-│  /api/connectors  /api/contacts  /api/sync  /api/health      │
-└──────────┬────────────────────────────────────┬──────────────┘
-           │                                    │
-┌──────────▼──────────┐             ┌───────────▼────────────┐
-│  ConnectorRegistry  │             │   HighLevelClient      │
-│  (Map of sources)   │             │  v2 API, OAuth 2.0     │
-│  ┌───────────────┐  │             │  normalizePhone()      │
-│  │GoogleConnector│  │             │  DuplicateContactError │
-│  └───────────────┘  │             └───────────┬────────────┘
-│  ┌────────────────┐ │                         │
-│  │FacebookConnector│ │             ┌───────────▼────────────┐
-│  └────────────────┘ │             │   HighLevel CRM (v2)   │
-└──────────┬──────────┘             └────────────────────────┘
-           │
-┌──────────▼──────────┐
-│    SyncEngine       │  ← connector-agnostic, never throws
-│    SyncLogger       │  ← writes to Prisma SyncLog
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│  PostgreSQL          │
-│  ConnectorToken      │  ← AES-256-GCM encrypted
-│  SyncLog             │
-└─────────────────────┘
-```
+
+</details>
+
 
 ---
 

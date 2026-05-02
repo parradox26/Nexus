@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 685" width="900" height="685"
+     font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <defs>
+    <filter id="sh" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#00000018"/>
+    </filter>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1L9 5L0 9Z" fill="#94A3B8"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1L9 5L0 9Z" fill="#059669"/>
+    </marker>
+    <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1L9 5L0 9Z" fill="#7C3AED"/>
+    </marker>
+    <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1L9 5L0 9Z" fill="#0891B2"/>
+    </marker>
+  </defs>
+
+  <!-- Page background -->
+  <rect width="900" height="685" fill="#F8FAFF" rx="14"/>
+
+  <!-- ══════════════════════════════════════════
+       ROW 1 — FRONTEND  (y=16, h=100)
+  ══════════════════════════════════════════ -->
+  <rect x="20" y="16" width="860" height="100" rx="10" fill="#EEF2FF" stroke="#6366F1" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="20" y="16" width="860" height="32" rx="10" fill="#6366F1"/>
+  <rect x="20" y="32"  width="860" height="16" fill="#6366F1"/>
+  <text x="450" y="38" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" letter-spacing="0.3">HighLevel Custom Page  (iframe · per sub-account · ?locationId={{location.id}})</text>
+
+  <rect x="36"  y="56" width="152" height="44" rx="7" fill="#fff" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="112" y="74" text-anchor="middle" fill="#4338CA" font-size="11" font-weight="600">ConnectorCard</text>
+  <text x="112" y="89" text-anchor="middle" fill="#6366F1" font-size="10">OAuth · Sync · View</text>
+
+  <rect x="202" y="56" width="152" height="44" rx="7" fill="#fff" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="278" y="74" text-anchor="middle" fill="#4338CA" font-size="11" font-weight="600">ConnectorList</text>
+  <text x="278" y="89" text-anchor="middle" fill="#6366F1" font-size="10">Responsive grid</text>
+
+  <rect x="368" y="56" width="152" height="44" rx="7" fill="#fff" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="444" y="74" text-anchor="middle" fill="#4338CA" font-size="11" font-weight="600">MetricsStrip</text>
+  <text x="444" y="89" text-anchor="middle" fill="#6366F1" font-size="10">Active · Synced · Last</text>
+
+  <rect x="534" y="56" width="152" height="44" rx="7" fill="#fff" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="610" y="74" text-anchor="middle" fill="#4338CA" font-size="11" font-weight="600">SyncLog</text>
+  <text x="610" y="89" text-anchor="middle" fill="#6366F1" font-size="10">History · Status</text>
+
+  <rect x="700" y="56" width="160" height="44" rx="7" fill="#fff" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="780" y="74" text-anchor="middle" fill="#4338CA" font-size="11" font-weight="600">HLConnectionPanel</text>
+  <text x="780" y="89" text-anchor="middle" fill="#6366F1" font-size="10">OAuth · sub-account scope</text>
+
+  <!-- FE → BE -->
+  <line x1="450" y1="116" x2="450" y2="152" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="396" y="124" width="108" height="18" rx="4" fill="#F1F5F9"/>
+  <text x="450" y="136" text-anchor="middle" fill="#64748B" font-size="10" font-weight="500">REST / JSON</text>
+
+  <!-- ══════════════════════════════════════════
+       ROW 2 — BACKEND  (y=154, h=88)
+  ══════════════════════════════════════════ -->
+  <rect x="20" y="154" width="860" height="88" rx="10" fill="#F8FAFC" stroke="#334155" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="20" y="154" width="860" height="32" rx="10" fill="#1E293B"/>
+  <rect x="20" y="170"  width="860" height="16" fill="#1E293B"/>
+  <text x="450" y="176" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" letter-spacing="0.3">Express Backend  (Node / TypeScript  ·  strict: true)</text>
+
+  <rect x="36"  y="196" width="158" height="28" rx="6" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.5"/>
+  <text x="115" y="214" text-anchor="middle" fill="#334155" font-size="11">/api/connectors</text>
+  <rect x="208" y="196" width="195" height="28" rx="6" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.5"/>
+  <text x="305" y="214" text-anchor="middle" fill="#334155" font-size="11">/api/contacts · /api/leads</text>
+  <rect x="417" y="196" width="118" height="28" rx="6" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.5"/>
+  <text x="476" y="214" text-anchor="middle" fill="#334155" font-size="11">/api/sync</text>
+  <rect x="549" y="196" width="158" height="28" rx="6" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.5"/>
+  <text x="628" y="214" text-anchor="middle" fill="#334155" font-size="11">/api/hl · /api/health</text>
+  <rect x="721" y="196" width="139" height="28" rx="6" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.5"/>
+  <text x="790" y="214" text-anchor="middle" fill="#334155" font-size="11">internal API key</text>
+
+  <!-- BE → Registry and BE → HLClient -->
+  <line x1="147" y1="242" x2="147" y2="296" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="740" y1="242" x2="740" y2="296" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ══════════════════════════════════════════
+       ROW 3 — REGISTRY | SYNC LAYER | HL CLIENT  (y=298, h=200)
+       Registry:   x=20,  w=255  → right=275
+       SyncLayer:  x=300, w=275  → right=575
+       HLClient:   x=600, w=280  → right=880
+  ══════════════════════════════════════════ -->
+
+  <!-- CONNECTOR REGISTRY -->
+  <rect x="20" y="298" width="255" height="200" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="20" y="298" width="255" height="32" rx="10" fill="#7C3AED"/>
+  <rect x="20" y="314"  width="255" height="16" fill="#7C3AED"/>
+  <text x="147" y="320" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">ConnectorRegistry</text>
+
+  <rect x="34" y="340" width="227" height="34" rx="6" fill="#fff" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="147" y="355" text-anchor="middle" fill="#5B21B6" font-size="11" font-weight="600">BaseConnector  (abstract)</text>
+  <text x="147" y="368" text-anchor="middle" fill="#7C3AED" font-size="9.5">sync()  ·  never throws  ·  returns SyncResult</text>
+
+  <rect x="34"  y="384" width="108" height="54" rx="6" fill="#fff" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="88"  y="400" text-anchor="middle" fill="#5B21B6" font-size="10.5" font-weight="600">Google</text>
+  <text x="88"  y="414" text-anchor="middle" fill="#6D28D9" font-size="9.5">Real OAuth2</text>
+  <text x="88"  y="427" text-anchor="middle" fill="#6D28D9" font-size="9.5">People API</text>
+
+  <rect x="153" y="384" width="108" height="54" rx="6" fill="#fff" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="207" y="400" text-anchor="middle" fill="#5B21B6" font-size="10.5" font-weight="600">Facebook</text>
+  <text x="207" y="414" text-anchor="middle" fill="#6D28D9" font-size="9.5">Mock · 5 leads</text>
+  <text x="207" y="427" text-anchor="middle" fill="#6D28D9" font-size="9.5">Prod-accurate map</text>
+
+  <text x="147" y="454" text-anchor="middle" fill="#7C3AED" font-size="9.5">authenticate()  ·  refreshTokenIfNeeded()</text>
+  <text x="147" y="467" text-anchor="middle" fill="#7C3AED" font-size="9.5">fetchContacts()  ·  mapToContact()  (pure)</text>
+  <text x="147" y="480" text-anchor="middle" fill="#7C3AED" font-size="9.5">disconnect()</text>
+
+  <!-- Registry → SyncLayer -->
+  <line x1="275" y1="398" x2="298" y2="398" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- SYNC LAYER -->
+  <rect x="300" y="298" width="275" height="200" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="300" y="298" width="275" height="32" rx="10" fill="#059669"/>
+  <rect x="300" y="314"  width="275" height="16" fill="#059669"/>
+  <text x="437" y="320" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Sync Layer</text>
+
+  <rect x="314" y="340" width="247" height="38" rx="6" fill="#fff" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="437" y="357" text-anchor="middle" fill="#065F46" font-size="11" font-weight="600">SyncEngine</text>
+  <text x="437" y="371" text-anchor="middle" fill="#059669" font-size="10">connector-agnostic · returns SyncResult</text>
+
+  <rect x="314" y="386" width="247" height="38" rx="6" fill="#fff" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="437" y="403" text-anchor="middle" fill="#065F46" font-size="11" font-weight="600">SyncLogger</text>
+  <text x="437" y="417" text-anchor="middle" fill="#059669" font-size="10">writes SyncLog rows via Prisma</text>
+
+  <rect x="314" y="432" width="247" height="50" rx="6" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="437" y="449" text-anchor="middle" fill="#065F46" font-size="10.5" font-weight="600">UnifiedContact / UnifiedLead</text>
+  <text x="437" y="463" text-anchor="middle" fill="#059669" font-size="10">Normalized schema before HL push</text>
+  <text x="437" y="477" text-anchor="middle" fill="#059669" font-size="10">attempted · succeeded · failed · warnings</text>
+
+  <!-- SyncLayer → HLClient  (push contacts) -->
+  <line x1="575" y1="398" x2="598" y2="398" stroke="#059669" stroke-width="1.5" marker-end="url(#ag)"/>
+  <rect x="565" y="386" width="44" height="14" rx="3" fill="#ECFDF5"/>
+  <text x="587" y="396" text-anchor="middle" fill="#059669" font-size="9" font-weight="600">push</text>
+
+  <!-- HL CLIENT -->
+  <rect x="600" y="298" width="280" height="200" rx="10" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="600" y="298" width="280" height="32" rx="10" fill="#0891B2"/>
+  <rect x="600" y="314"  width="280" height="16" fill="#0891B2"/>
+  <text x="740" y="320" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">HighLevelClient</text>
+
+  <rect x="614" y="340" width="252" height="28" rx="5" fill="#fff" stroke="#A5F3FC" stroke-width="1"/>
+  <text x="740" y="358" text-anchor="middle" fill="#0E7490" font-size="10.5">createOrUpdateContact(contact, locationId)</text>
+
+  <rect x="614" y="376" width="252" height="28" rx="5" fill="#fff" stroke="#A5F3FC" stroke-width="1"/>
+  <text x="740" y="394" text-anchor="middle" fill="#0E7490" font-size="10.5">getContacts(locationId, options)</text>
+
+  <rect x="614" y="412" width="252" height="28" rx="5" fill="#fff" stroke="#A5F3FC" stroke-width="1"/>
+  <text x="740" y="430" text-anchor="middle" fill="#0E7490" font-size="10.5">normalizePhone()  →  E.164 format</text>
+
+  <rect x="614" y="448" width="252" height="30" rx="5" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1"/>
+  <text x="740" y="467" text-anchor="middle" fill="#C2410C" font-size="10.5">DuplicateContactError  →  warning</text>
+
+  <!-- ══════════════════════════════════════════
+       ARROWS ROW 3 → ROW 4
+  ══════════════════════════════════════════ -->
+  <!-- Registry → PostgreSQL (token storage, dashed) -->
+  <line x1="147" y1="498" x2="147" y2="560" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#av)"/>
+  <rect x="80" y="516" width="134" height="16" rx="3" fill="#F5F3FF"/>
+  <text x="147" y="528" text-anchor="middle" fill="#7C3AED" font-size="9.5">store encrypted tokens</text>
+
+  <!-- SyncLayer → PostgreSQL (write log) -->
+  <line x1="437" y1="498" x2="437" y2="560" stroke="#059669" stroke-width="1.5" marker-end="url(#ag)"/>
+  <rect x="400" y="518" width="74" height="16" rx="3" fill="#ECFDF5"/>
+  <text x="437" y="530" text-anchor="middle" fill="#059669" font-size="9.5">write log</text>
+
+  <!-- HLClient → HLCRM -->
+  <line x1="740" y1="498" x2="740" y2="560" stroke="#0891B2" stroke-width="1.5" marker-end="url(#ac)"/>
+
+  <!-- ══════════════════════════════════════════
+       ROW 4 — POSTGRESQL | HL CRM  (y=562, h=105)
+  ══════════════════════════════════════════ -->
+
+  <!-- POSTGRESQL -->
+  <rect x="20" y="562" width="565" height="106" rx="10" fill="#F1F5F9" stroke="#475569" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="20" y="562" width="565" height="32" rx="10" fill="#475569"/>
+  <rect x="20" y="578"  width="565" height="16" fill="#475569"/>
+  <text x="302" y="584" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">PostgreSQL — Supabase  (Prisma v6)</text>
+
+  <rect x="34"  y="604" width="258" height="48" rx="6" fill="#fff" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="163" y="622" text-anchor="middle" fill="#334155" font-size="11" font-weight="600">ConnectorToken</text>
+  <text x="163" y="637" text-anchor="middle" fill="#64748B" font-size="10">AES-256-GCM · fresh IV per write</text>
+  <text x="163" y="651" text-anchor="middle" fill="#64748B" font-size="10">tokenStore.save() · tokenStore.get()</text>
+
+  <rect x="306" y="604" width="265" height="48" rx="6" fill="#fff" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="438" y="622" text-anchor="middle" fill="#334155" font-size="11" font-weight="600">SyncLog</text>
+  <text x="438" y="637" text-anchor="middle" fill="#64748B" font-size="10">attempted · succeeded · failed</text>
+  <text x="438" y="651" text-anchor="middle" fill="#64748B" font-size="10">errors · warnings · duration · timestamp</text>
+
+  <!-- HL CRM -->
+  <rect x="597" y="562" width="283" height="106" rx="10" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="597" y="562" width="283" height="32" rx="10" fill="#D97706"/>
+  <rect x="597" y="578"  width="283" height="16" fill="#D97706"/>
+  <text x="738" y="584" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">HighLevel CRM</text>
+  <text x="738" y="612" text-anchor="middle" fill="#78350F" font-size="11" font-weight="500">services.leadconnectorhq.com</text>
+  <text x="738" y="628" text-anchor="middle" fill="#92400E" font-size="10">API v2  ·  OAuth 2.0  ·  Multi-location</text>
+  <text x="738" y="643" text-anchor="middle" fill="#92400E" font-size="10">Version: 2021-07-28  ·  locationId scoped</text>
+  <text x="738" y="658" text-anchor="middle" fill="#92400E" font-size="10">400 for duplicates · E.164 phone required</text>
+
+</svg>

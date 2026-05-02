@@ -17,39 +17,70 @@ A connector abstraction and normalization layer that connects third-party apps (
 
 ## Architecture
 
+![Nexus Architecture](docs/architecture.svg)
+
+<details><summary>Mermaid source</summary>
+
+```mermaid
+flowchart TD
+    subgraph FE["HighLevel Custom Page (iframe)"]
+        direction LR
+        CC["ConnectorCard"]
+        CL["ConnectorList"]
+        MS["MetricsStrip"]
+        SLG["SyncLog"]
+    end
+
+    subgraph BE["Express Backend (Node/TS)"]
+        direction LR
+        R1["/api/connectors"]
+        R2["/api/contacts · /api/leads"]
+        R3["/api/sync"]
+        R4["/api/hl  ·  /api/health"]
+    end
+
+    subgraph REG["ConnectorRegistry"]
+        direction TB
+        BC["BaseConnector (abstract)\nsync() — never throws"]
+        GC["GoogleConnector\nReal OAuth2 · People API"]
+        FB["FacebookConnector\nDocumented mock · 5 leads"]
+        BC --> GC
+        BC --> FB
+    end
+
+    subgraph HLC["HighLevelClient"]
+        direction TB
+        HLA["createOrUpdateContact()"]
+        HLB["getContacts()"]
+        HLC2["normalizePhone()  E.164"]
+        DCE["DuplicateContactError → warning"]
+    end
+
+    subgraph ENG["Sync Layer"]
+        direction LR
+        SE["SyncEngine\nconnector-agnostic"]
+        SL["SyncLogger\nwrites SyncLog rows"]
+    end
+
+    subgraph DB["PostgreSQL — Supabase"]
+        direction LR
+        CT["ConnectorToken\nAES-256-GCM encrypted"]
+        SLT["SyncLog\nstatus · counts · duration"]
+    end
+
+    HLCRM["HighLevel CRM\nservices.leadconnectorhq.com\nAPI v2"]
+
+    FE -->|"REST / JSON"| BE
+    BE --> REG
+    BE --> HLC
+    REG --> ENG
+    ENG -->|"push contacts"| HLC
+    ENG -->|"write log"| DB
+    HLC --> HLCRM
+    REG -->|"store tokens"| DB
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    HighLevel Custom JS                      │
-│    ┌─────────────┐   ┌──────────────┐   ┌──────────────┐   │
-│    │ConnectorCard│   │ConnectorList │   │   SyncLog    │   │
-│    └─────────────┘   └──────────────┘   └──────────────┘   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ REST API (JSON)
-┌──────────────────────────▼──────────────────────────────────┐
-│                    Express Backend                          │
-│  /api/connectors   /api/contacts   /api/sync   /api/health  │
-└──────────┬──────────────────────────────────────┬───────────┘
-           │                                      │
-┌──────────▼──────────┐              ┌────────────▼────────────┐
-│   ConnectorRegistry │              │   HighLevelClient       │
-│  ┌───────────────┐  │              │  createOrUpdateContact() │
-│  │GoogleConnector│  │              │  getContacts()          │
-│  └───────────────┘  │              └────────────┬────────────┘
-│  ┌────────────────┐ │                           │
-│  │FacebookConnector│ │              ┌────────────▼────────────┐
-│  └────────────────┘ │              │  HighLevel CRM API      │
-└──────────┬──────────┘              └─────────────────────────┘
-           │
-┌──────────▼──────────┐
-│     SyncEngine      │ ← connector-agnostic, returns SyncResult
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│   PostgreSQL (DB)   │
-│  connector_tokens   │ ← AES-256-GCM encrypted
-│  sync_log          │
-└─────────────────────┘
-```
+
+</details>
 
 ---
 
