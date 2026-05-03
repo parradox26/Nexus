@@ -17,39 +17,70 @@ A connector abstraction and normalization layer that connects third-party apps (
 
 ## Architecture
 
+![Nexus Architecture](docs/architecture.svg)
+
+<details><summary>Mermaid source</summary>
+
+```mermaid
+flowchart TD
+    subgraph FE["HighLevel Custom Page (iframe)"]
+        direction LR
+        CC["ConnectorCard"]
+        CL["ConnectorList"]
+        MS["MetricsStrip"]
+        SLG["SyncLog"]
+    end
+
+    subgraph BE["Express Backend (Node/TS)"]
+        direction LR
+        R1["/api/connectors"]
+        R2["/api/contacts · /api/leads"]
+        R3["/api/sync"]
+        R4["/api/hl  ·  /api/health"]
+    end
+
+    subgraph REG["ConnectorRegistry"]
+        direction TB
+        BC["BaseConnector (abstract)\nsync() — never throws"]
+        GC["GoogleConnector\nReal OAuth2 · People API"]
+        FB["FacebookConnector\nDocumented mock · 5 leads"]
+        BC --> GC
+        BC --> FB
+    end
+
+    subgraph HLC["HighLevelClient"]
+        direction TB
+        HLA["createOrUpdateContact()"]
+        HLB["getContacts()"]
+        HLC2["normalizePhone()  E.164"]
+        DCE["DuplicateContactError → warning"]
+    end
+
+    subgraph ENG["Sync Layer"]
+        direction LR
+        SE["SyncEngine\nconnector-agnostic"]
+        SL["SyncLogger\nwrites SyncLog rows"]
+    end
+
+    subgraph DB["PostgreSQL — Supabase"]
+        direction LR
+        CT["ConnectorToken\nAES-256-GCM encrypted"]
+        SLT["SyncLog\nstatus · counts · duration"]
+    end
+
+    HLCRM["HighLevel CRM\nservices.leadconnectorhq.com\nAPI v2"]
+
+    FE -->|"REST / JSON"| BE
+    BE --> REG
+    BE --> HLC
+    REG --> ENG
+    ENG -->|"push contacts"| HLC
+    ENG -->|"write log"| DB
+    HLC --> HLCRM
+    REG -->|"store tokens"| DB
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    HighLevel Custom JS                      │
-│    ┌─────────────┐   ┌──────────────┐   ┌──────────────┐   │
-│    │ConnectorCard│   │ConnectorList │   │   SyncLog    │   │
-│    └─────────────┘   └──────────────┘   └──────────────┘   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ REST API (JSON)
-┌──────────────────────────▼──────────────────────────────────┐
-│                    Express Backend                          │
-│  /api/connectors   /api/contacts   /api/sync   /api/health  │
-└──────────┬──────────────────────────────────────┬───────────┘
-           │                                      │
-┌──────────▼──────────┐              ┌────────────▼────────────┐
-│   ConnectorRegistry │              │   HighLevelClient       │
-│  ┌───────────────┐  │              │  createOrUpdateContact() │
-│  │GoogleConnector│  │              │  getContacts()          │
-│  └───────────────┘  │              └────────────┬────────────┘
-│  ┌────────────────┐ │                           │
-│  │FacebookConnector│ │              ┌────────────▼────────────┐
-│  └────────────────┘ │              │  HighLevel CRM API      │
-└──────────┬──────────┘              └─────────────────────────┘
-           │
-┌──────────▼──────────┐
-│     SyncEngine      │ ← connector-agnostic, returns SyncResult
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│   PostgreSQL (DB)   │
-│  connector_tokens   │ ← AES-256-GCM encrypted
-│  sync_log          │
-└─────────────────────┘
-```
+
+</details>
 
 ---
 
@@ -146,7 +177,7 @@ partial failures, and concurrent syncs."
 | Google People API | Real | Calls live API with real token |
 | Facebook OAuth | Mocked | App Review takes 2-4 weeks |
 | Facebook Lead Ads API | Mocked | Requires approved app + webhook subscription |
-| HighLevel API | Real (config required) | Needs `HL_API_KEY` in env |
+| HighLevel OAuth | Real | App-level OAuth 2.0, multi-location, token auto-refresh |
 | Token encryption | Real | AES-256-GCM via Node crypto |
 | Prisma + PostgreSQL | Real (config required) | Needs `DATABASE_URL` |
 
@@ -156,9 +187,9 @@ partial failures, and concurrent syncs."
 
 - No webhook support for real-time sync (Facebook Lead Ads webhooks require verified app)
 - No scheduled/background sync (would need a job runner like BullMQ or pg-cron)
-- HighLevel API v1 used — v2 (OAuth-based) exists but requires different auth setup
 - No user auth — internal API key is a single shared secret
 - Facebook connector is fully mocked; production requires Facebook App Review
+- Contacts without an email address are still attempted (HL accepts null email but rejects empty string — omitted from body)
 
 ---
 
@@ -209,19 +240,15 @@ Visit http://localhost:5173 to see the UI.
 
 ## Embedding in HighLevel
 
+Nexus runs inside HighLevel as a **Custom Page** (iframe) — not Custom JS. This gives it a dedicated sidebar entry per sub-account.
+
 ```bash
-# 1. Build frontend bundle
-cd frontend
-VITE_API_BASE_URL=https://your-app.railway.app npm run build
-# Output: dist/index.js and dist/index.css
+# 1. In HL Marketplace app settings → App Modules → Custom Page
+#    Set URL: https://your-app.railway.app?locationId={{location.id}}
+#    Placement: Sub-account navigation (left sidebar)
 
-# 2. Host dist/index.js on a CDN or serve from backend /public
-
-# 3. In HighLevel:
-#    Settings → Custom JS/CSS
-#    Add: <script src="https://your-cdn/index.js"></script>
-#    Add: <link rel="stylesheet" href="https://your-cdn/index.css">
-
-# 4. The React app mounts to <div id="root">
-#    Add this div in your HighLevel custom HTML
+# 2. The app auto-scopes to the current sub-account via ?locationId
+#    window.opener detection handles install vs manual connect flows
 ```
+
+The React app mounts to `#nexus-app` (injected by the Custom Page iframe) and falls back to `#root` for local dev.

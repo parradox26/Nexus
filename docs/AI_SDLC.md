@@ -367,6 +367,223 @@ Let AI trace the exact failure path rather than guessing.
 
 ---
 
+## Stage 8 — Post-MVP Iterations
+
+After the initial MVP was complete, the user drove a second session of targeted changes through conversational prompts. Each change below maps a user prompt to the exact code that changed.
+
+---
+
+### 8.1 — Redirect URI Blocked by HighLevel
+
+**User prompt:**
+```
+can not have highlevel reference in uri
+```
+
+**Context:** HighLevel's Marketplace rejects OAuth redirect URIs that contain the word "highlevel" in the path. The original route was mounted at `/api/connectors/highlevel/callback`.
+
+**AI action:**
+- Renamed all HL routes from `/api/connectors/highlevel` to `/api/hl` in `app.ts`
+- Updated all frontend API calls in `frontend/src/api/client.ts`
+- Updated `HL_REDIRECT_URI` in `.env.example` and `.env`
+- Updated the registered redirect URI in the HighLevel Marketplace app settings (user action)
+
+**Files changed:** `backend/src/app.ts`, `frontend/src/api/client.ts`, `backend/.env`, `backend/.env.example`
+
+---
+
+### 8.2 — Merge Conflict Resolution
+
+**User prompt:**
+```
+resolve merge conflicts
+```
+
+**Context:** A feature branch (`7b2f591`) had been merged in that added a new gradient header layout, a `SyncHeader` component, and a `handleSyncAll` function. This conflicted with `App.tsx` and `ConnectorList.tsx` on `main`.
+
+**AI action:**
+- Kept both the new gradient header/`SyncHeader` from the incoming branch and the `HLConnectionPanel` Destination section from HEAD
+- Added missing `const [syncingAll, setSyncingAll] = useState(false)` — the incoming branch's `handleSyncAll` referenced this state but never declared it
+- Dropped unused `isTwoColumn` state from HEAD (CSS `auto-fill` handles responsiveness)
+
+**Files changed:** `frontend/src/App.tsx`, `frontend/src/components/ConnectorList.tsx`
+
+---
+
+### 8.3 — Google Sync 422 Errors
+
+**User prompt:**
+```
+[Shared JSON of 4 failing Google contacts with 422 errors]
+EMAIL IS NULLABLE IN BOTH API
+```
+
+**Context:** 4 Google contacts failed to sync with HTTP 422. Initial diagnosis was that HL requires email — AI added a skip guard in `BaseConnector`. User then linked the HL API docs showing email is nullable, not required.
+
+**AI diagnosis:** The real issue was `email: ''` (empty string) being sent to HL. HL rejects empty string but accepts omitted field.
+
+**Fix:**
+```typescript
+// Before — always sent email:
+const body = { firstName, lastName, email: contact.email, locationId }
+
+// After — only include email when truthy:
+const body: Record<string, unknown> = { firstName, lastName, locationId }
+if (contact.email) body.email = contact.email
+```
+
+**Also reverted:** The skip guard added to `BaseConnector.sync()` was removed — contacts without email should still be attempted.
+
+**Files changed:** `backend/src/highlevel/highlevel.client.ts`, `backend/src/connectors/base.connector.ts`
+
+---
+
+### 8.4 — iframe Embedding via Custom Pages
+
+**User prompt:**
+```
+[Shared HighLevel Custom Pages docs URL]
+```
+
+**Context:** The original plan was to embed Nexus via HighLevel Custom JS (a script tag). The user shared docs showing Custom Pages use iframes. The browser blocks iframes unless the server sends a `frame-ancestors` CSP header.
+
+**AI action:**
+- Added `Content-Security-Policy: frame-ancestors` header to Express middleware allowing `*.gohighlevel.com`, `*.leadconnectorhq.com`, `*.msgsndr.com`
+- Confirmed relative API URLs work correctly inside the iframe (iframe origin = Railway URL)
+- Updated README Embedding section from Custom JS to Custom Pages
+
+```typescript
+res.header(
+  'Content-Security-Policy',
+  'frame-ancestors https://*.gohighlevel.com https://*.leadconnectorhq.com https://*.msgsndr.com'
+)
+```
+
+**Files changed:** `backend/src/app.ts`, `README.md`
+
+---
+
+### 8.5 — Sub-Account Scoping
+
+**User prompt:**
+```
+im seeing both accounts attached on a subaccount A in highlevel, idea should be 
+that when nexus app is installed it should automatically register to sidebar if 
+possible, and then sign in for that subaccount only
+```
+
+**Context:** HighLevel Custom Pages inject `?locationId={{location.id}}` into the iframe URL per sub-account. Without reading this param, the UI showed all connected locations regardless of which sub-account the user was viewing.
+
+**AI action:**
+- Added `embeddedLocationId` — read from URL params in `App.tsx`:
+  ```typescript
+  const embeddedLocationId = useMemo(() =>
+    new URLSearchParams(window.location.search).get('locationId'), [])
+  ```
+- Passed `embeddedLocationId` to `HLConnectionPanel`
+- Added `visibleLocations` filter: when embedded, only show the location matching the URL param
+- Updated status badge to show "Connected"/"Not connected" when embedded (instead of count)
+- Hidden when embedded: location selector dropdown
+- Also noted: the Custom Page URL in HL Marketplace app settings must include `?locationId={{location.id}}`
+
+**Files changed:** `frontend/src/App.tsx`, `frontend/src/components/HLConnectionPanel.tsx`
+
+---
+
+### 8.6 — Remove "Add Connector" Button
+
+**User prompt:**
+```
+remove the add connector button from top bar
+```
+
+**AI action:** Removed the "Add connector" `<button>` element from the header in `App.tsx`. No logic changes — the button had no handler implementation.
+
+**Files changed:** `frontend/src/App.tsx`
+
+---
+
+### 8.7 — Remove "Add Another Location" Button
+
+**User prompt:**
+```
+remove add another sub-account button, can this be automated during 
+installation or after installation
+```
+
+**Context:** The `HLConnectionPanel` had an "Add another location" button to connect additional HL sub-accounts. The user wanted a single location per installation.
+
+**AI action:**
+- Removed "Add another location" button entirely from `HLConnectionPanel`
+- Explained the two automation levels:
+  - **Level 1 (implemented):** Marketplace install flow auto-connects via `window.opener` detection in the OAuth bridge
+  - **Level 2 (future):** HL webhook on install event could trigger auto-connect server-side
+
+**Files changed:** `frontend/src/components/HLConnectionPanel.tsx`
+
+---
+
+### 8.8 — Marketplace Install-Triggered OAuth
+
+**User prompt:**
+```
+lets implement level 1
+```
+```
+[Shared install URL format from HL Marketplace — auto-generated, not a separate Install URL field]
+```
+
+**Context:** When a user installs the app from the HL Marketplace, HL sends an OAuth code to the registered redirect URI — same URI as manual connect. The challenge was distinguishing install flow (full-page redirect, no opener) from manual popup flow (has opener).
+
+**First approach (wrong):** Server-side `?install=1` detection. Reverted when user revealed HL auto-generates the install URL from the registered redirect_uri — there is no separate Install URL field.
+
+**Final approach:** Client-side `window.opener` detection in the bridge HTML:
+
+```javascript
+const isPopup = !!(window.opener && !window.opener.closed);
+if (!isPopup) {
+  // Marketplace install — full-page redirect to app
+  setTimeout(function () {
+    if (payload.success && payload.locationId) {
+      window.location.href = '/?locationId=' + encodeURIComponent(payload.locationId);
+    } else {
+      window.location.href = '/';
+    }
+  }, payload.success ? 800 : 1500);
+  return;
+}
+// Manual popup — postMessage + close
+try { window.opener.postMessage(payload, '*'); } catch (_err) {}
+setTimeout(function() { window.close(); }, 150);
+```
+
+**Files changed:** `backend/src/routes/highlevel.routes.ts`
+
+---
+
+### 8.9 — Production OAuth Error
+
+**User prompt:**
+```
+after login redirection opens:
+https://nexus-production-ca4a.up.railway.app/api/hl/callback?code=3f1fb911...
+but give error
+is anything needed to change in .env
+```
+
+**AI diagnosis:** Railway's environment still had `HL_REDIRECT_URI=http://localhost:3000/api/hl/callback`. During the OAuth token exchange, HL validates that the `redirect_uri` in the request matches what is registered in the Marketplace app settings. Mismatch → token exchange fails.
+
+**Fix:** Update `HL_REDIRECT_URI` in Railway dashboard to the production URL:
+```
+HL_REDIRECT_URI=https://nexus-production-ca4a.up.railway.app/api/hl/callback
+```
+
+**No code changes** — environment-only fix. Also cleaned up stale `.env` variables (`HL_PIT`, `HL_API_KEY`, `HL_LOCATION_ID`) that had been leftover from the v1 PIT-based implementation.
+
+**Files changed:** `backend/.env` (env vars only, not code)
+
+---
+
 ## Trade-offs and Decisions
 
 | Decision | Alternative | Why this choice |
