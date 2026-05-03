@@ -20,7 +20,7 @@ Existing solutions are either workflow builders (Zapier, Make) that require per-
 
 ## 2. Product Vision
 
-**Nexus** is a connector abstraction and normalization platform — closer to [Merge.dev](https://merge.dev) than Zapier.
+**Nexus** is a connector abstraction and normalization platform.
 
 > "Connect any external data source, normalize it to a unified schema, sync it to HighLevel CRM."
 

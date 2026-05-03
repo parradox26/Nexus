@@ -1,15 +1,4 @@
-/**
- * MOCK CONNECTOR — Facebook Lead Ads
- *
- * Real implementation requires:
- * - Facebook App Review (2-4 weeks)
- * - leads_retrieval permission
- * - Page subscription to leadgen webhook
- *
- * This mock simulates the same interface a real connector would expose.
- * The mapToContact() mapping logic is production-accurate.
- * OAuth flow is simulated but token storage is real.
- */
+
 import { BaseConnector, FetchOptions } from './base.connector'
 import { UnifiedContact, UnifiedLead, ConnectorSource } from '../schema'
 import { tokenStore } from '../auth/token.store'
@@ -82,7 +71,18 @@ const MOCK_LEADS: FacebookLead[] = [
     ],
   },
 ]
-
+/**
+ * MOCK CONNECTOR — Facebook Lead Ads
+ *
+ * Real implementation requires:
+ * - Facebook App Review (2-4 weeks)
+ * - leads_retrieval permission
+ * - Page subscription to leadgen webhook
+ *
+ * This mock simulates the same interface a real connector would expose.
+ * The mapToContact() mapping logic is production-accurate.
+ * OAuth flow is simulated but token storage is real.
+ */
 export class FacebookConnector extends BaseConnector {
   readonly name = 'Facebook Lead Ads'
   readonly source: ConnectorSource = 'facebook'
