@@ -75,6 +75,11 @@ export abstract class BaseConnector {
     options: { dryRun?: boolean; triggeredBy?: string }
   ): Promise<SyncResult> {
     const startMs = Date.now()
+    logger.info(`Sync execution started for ${logSource}`, {
+      dryRun: options.dryRun ?? false,
+      triggeredBy: options.triggeredBy ?? 'manual',
+    })
+
     const result: SyncResult = {
       connectorSource: this.source,
       attempted: 0, succeeded: 0, failed: 0,
@@ -86,12 +91,26 @@ export abstract class BaseConnector {
       await this.refreshTokenIfNeeded()
       const items = await fetch()
       result.attempted = items.length
+      logger.debug(`Fetched records for ${logSource}`, { attempted: result.attempted })
       const loop = await this._runLoop(items as UnifiedContact[], push, options.dryRun ?? false)
       result.succeeded = loop.succeeded
       result.failed = loop.failed
       result.errors = loop.errors
       result.warnings = loop.warnings
       this.lastSync = new Date()
+
+      if (result.warnings.length > 0) {
+        logger.warn(`Sync completed with duplicate warnings for ${logSource}`, {
+          warningCount: result.warnings.length,
+          sampleWarnings: result.warnings.slice(0, 5),
+        })
+      }
+      if (result.errors.length > 0) {
+        logger.error(`Sync encountered record failures for ${logSource}`, {
+          errorCount: result.errors.length,
+          sampleErrors: result.errors.slice(0, 5),
+        })
+      }
     } catch (err) {
       logger.error(`Sync failed for ${logSource}`, err)
       result.failed = result.attempted
@@ -116,6 +135,16 @@ export abstract class BaseConnector {
     } catch (logErr) {
       logger.error('Failed to write sync log', logErr)
     }
+
+    logger.info(`Sync execution finished for ${logSource}`, {
+      status,
+      attempted: result.attempted,
+      succeeded: result.succeeded,
+      failed: result.failed,
+      warningCount: result.warnings.length,
+      errorCount: result.errors.length,
+      durationMs,
+    })
 
     return result
   }

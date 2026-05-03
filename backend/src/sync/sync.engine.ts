@@ -42,16 +42,54 @@ export class SyncEngine {
 
   async run(connector: BaseConnector, options: SyncOptions = {}): Promise<SyncResult> {
     const triggeredBy = options.triggeredBy ?? 'manual'
+    logger.info(`Starting contact sync for ${connector.source}`, {
+      dryRun: options.dryRun ?? false,
+      triggeredBy,
+      requestedLocationId: options.locationId ?? null,
+      fixedClientInjected: Boolean(this.fixedHlClient),
+    })
+
     const hlClient = await this.getClient(options.locationId)
-    logger.info(`Starting contact sync for ${connector.source}`, { dryRun: options.dryRun, triggeredBy })
-    return connector.sync(hlClient, syncLogger, { dryRun: options.dryRun, triggeredBy })
+    const result = await connector.sync(hlClient, syncLogger, {
+      dryRun: options.dryRun,
+      triggeredBy,
+    })
+
+    logger.info(`Completed contact sync for ${connector.source}`, {
+      attempted: result.attempted,
+      succeeded: result.succeeded,
+      failed: result.failed,
+      warningCount: result.warnings.length,
+      errorCount: result.errors.length,
+      timestamp: result.timestamp,
+    })
+    return result
   }
 
   async runLeads(connector: BaseConnector, options: SyncOptions = {}): Promise<SyncResult> {
     const triggeredBy = options.triggeredBy ?? 'manual'
+    logger.info(`Starting lead sync for ${connector.source}`, {
+      dryRun: options.dryRun ?? false,
+      triggeredBy,
+      requestedLocationId: options.locationId ?? null,
+      fixedClientInjected: Boolean(this.fixedHlClient),
+    })
+
     const hlClient = await this.getClient(options.locationId)
-    logger.info(`Starting lead sync for ${connector.source}`, { dryRun: options.dryRun, triggeredBy })
-    return connector.syncLeads(hlClient, syncLogger, { dryRun: options.dryRun, triggeredBy })
+    const result = await connector.syncLeads(hlClient, syncLogger, {
+      dryRun: options.dryRun,
+      triggeredBy,
+    })
+
+    logger.info(`Completed lead sync for ${connector.source}`, {
+      attempted: result.attempted,
+      succeeded: result.succeeded,
+      failed: result.failed,
+      warningCount: result.warnings.length,
+      errorCount: result.errors.length,
+      timestamp: result.timestamp,
+    })
+    return result
   }
 
   async runAll(
