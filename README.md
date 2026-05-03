@@ -10,6 +10,7 @@ A connector abstraction and normalization layer that connects third-party apps (
 |---|---|
 | [docs/PRD.md](docs/PRD.md) | Product Requirements Document — problem statement, schema definitions, API design, success metrics |
 | [docs/AI_SDLC.md](docs/AI_SDLC.md) | AI-First SDLC — how AI was used at every stage, exact prompts, orchestration strategy, trade-offs |
+| [docs/CONNECTOR_GUIDE.md](docs/CONNECTOR_GUIDE.md) | Step-by-step guide to adding a new connector — all 7 touch points, HubSpot example, test template, checklist |
 | [AGENTS.md](AGENTS.md) | Universal agent context — paste into any AI model to onboard it to this codebase |
 | [CLAUDE.md](CLAUDE.md) | Claude Code context — auto-loaded, critical rules and sharp edges |
 
@@ -96,14 +97,80 @@ All connectors extend `BaseConnector` and implement five abstract methods:
 | `mapToContact(raw)` | Pure mapping — raw API response → UnifiedContact |
 | `disconnect()` | Clear tokens, mark disconnected |
 
-### Adding a new connector in 4 steps
+### Adding a new connector
 
-1. Create `src/connectors/yourapp.connector.ts` extending `BaseConnector`
-2. Implement all 5 abstract methods
-3. Register in `connector.registry.ts`
-4. Add OAuth env vars to `.env.example`
+There are **7 touch points** across backend and frontend. The sync engine, routes, and HighLevelClient require zero changes.
+
+| Step | File | What to do |
+|---|---|---|
+| 1 | `backend/src/schema/contact.schema.ts` + `frontend/src/types/index.ts` | Extend `ConnectorSource` union type |
+| 2 | `backend/src/connectors/yourapp.connector.ts` | Implement 5 abstract methods + `getAuthUrl()` |
+| 3 | `backend/src/connectors/connector.registry.ts` | `registry.set('yourapp', new YourAppConnector())` |
+| 4 | `backend/.env.example` | Document OAuth env vars |
+| 5 | `frontend/src/components/primitives.tsx` | Add glyph component + `CONNECTOR_META` entry |
+| 6 | `frontend/src/components/ConnectorCard.tsx` | Add description string (+ `LEADS_SOURCES` if lead-capable) |
+| 7 | `backend/tests/unit/yourapp.mapper.test.ts` | Unit tests for `mapToContact()` — no mocking needed |
+
+See **[docs/CONNECTOR_GUIDE.md](docs/CONNECTOR_GUIDE.md)** for the full walkthrough with a complete HubSpot example, `mapToContact` rules, test templates, and a completion checklist.
 
 The `sync()` method is inherited from `BaseConnector` — no sync logic needed in the connector itself.
+
+---
+
+## Facebook Connector — Path to Production
+
+The Facebook connector is currently mocked. `mapToContact()` and `mapToLead()` are **production-accurate** — they parse the real `field_data` array format Facebook's API returns. Only `authenticate()` and `fetchContacts()` are simulated.
+
+### What needs to change (2 methods only)
+
+**1. `authenticate(code)`** — replace mock token with real OAuth exchange:
+```typescript
+// Real implementation:
+const response = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+  params: {
+    client_id: process.env.FB_APP_ID,
+    client_secret: process.env.FB_APP_SECRET,
+    redirect_uri: process.env.FB_REDIRECT_URI,
+    code,
+  },
+})
+await tokenStore.save(this.source, {
+  accessToken: response.data.access_token,
+  expiresAt: new Date(Date.now() + response.data.expires_in * 1000),
+})
+```
+
+**2. `fetchContacts()` / `fetchLeads()`** — replace hardcoded leads with real Graph API calls:
+```typescript
+// Real implementation:
+const token = await tokenStore.get(this.source)
+// 1. Get all lead gen forms for the page
+const formsRes = await axios.get(`https://graph.facebook.com/v19.0/me/leadgen_forms`, {
+  params: { access_token: token.accessToken, fields: 'id,name' },
+})
+// 2. For each form, fetch leads
+const leads: FacebookLead[] = []
+for (const form of formsRes.data.data) {
+  const leadsRes = await axios.get(`https://graph.facebook.com/v19.0/${form.id}/leads`, {
+    params: { access_token: token.accessToken, fields: 'id,created_time,field_data' },
+  })
+  leads.push(...leadsRes.data.data)
+}
+return leads.map((lead) => this.mapToContact(lead))
+```
+
+**`mapToContact()` and `mapToLead()` — zero changes.** They already parse the real `field_data` format.
+
+### Prerequisites before going live
+
+| Requirement | Where to do it |
+|---|---|
+| Facebook App Review | [developers.facebook.com](https://developers.facebook.com) → App Review → Request `leads_retrieval` |
+| Page subscription | App Dashboard → Webhooks → Subscribe to `leadgen` events for your Facebook Page |
+| Env vars to add | `FB_APP_ID`, `FB_APP_SECRET`, `FB_REDIRECT_URI` in `.env` |
+| Auth URL | `https://www.facebook.com/v19.0/dialog/oauth?client_id=...&redirect_uri=...&scope=leads_retrieval,pages_read_engagement` |
+
+App Review typically takes 2–4 weeks. No code changes needed after approval — only the two methods above.
 
 ---
 
