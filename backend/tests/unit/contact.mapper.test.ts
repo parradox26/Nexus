@@ -93,10 +93,10 @@ describe('FacebookConnector.mapToContact', () => {
     expect(contact.sourceId).toBe('fb_lead_test_001')
   })
 
-  it('maps campaign and ad IDs to lead fields', () => {
-    const contact = facebook.mapToContact(facebookLeadFixture) as { campaignId?: string; adId?: string }
-    expect(contact.campaignId).toBe('camp_001')
-    expect(contact.adId).toBe('ad_001')
+  it('maps campaign and ad IDs on lead records', () => {
+    const lead = facebook.mapToLead(facebookLeadFixture)
+    expect(lead.campaignId).toBe('camp_001')
+    expect(lead.adId).toBe('ad_001')
   })
 
   it('adds facebook-lead tag', () => {
